@@ -44,6 +44,3 @@ logs/
 
 # claude
 .claude/
-
-# Internal tech specs (kept local; not part of the OSS repo)
-docs/
