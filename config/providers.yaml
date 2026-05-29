@@ -1,0 +1,69 @@
+# Harness Trading - Multi-Provider LLM Configuration
+# Like openclaw, configure any model provider here
+
+providers:
+  primary:
+    name: "主推理模型"
+    provider: anthropic
+    model: claude-sonnet-4-20250514
+    api_key: ${ANTHROPIC_API_KEY}
+    base_url: https://api.anthropic.com
+    max_tokens: 4096
+    temperature: 0.3
+    enabled: true
+
+  secondary:
+    name: "辅助模型"
+    provider: deepseek
+    model: deepseek-chat
+    api_key: ${DEEPSEEK_API_KEY}
+    base_url: https://api.deepseek.com
+    max_tokens: 2048
+    temperature: 0.5
+    enabled: true
+
+  local:
+    name: "本地模型"
+    provider: ollama
+    model: qwen2.5:32b
+    base_url: http://localhost:11434
+    max_tokens: 4096
+    temperature: 0.3
+    enabled: false
+
+  vision:
+    name: "多模态模型"
+    provider: openai
+    model: gpt-4o
+    api_key: ${OPENAI_API_KEY}
+    base_url: https://api.openai.com
+    max_tokens: 4096
+    temperature: 0.3
+    enabled: true
+
+  long_context:
+    name: "长上下文模型"
+    provider: moonshot
+    model: moonshot-v1-128k
+    api_key: ${MOONSHOT_API_KEY}
+    base_url: https://api.moonshot.cn
+    max_tokens: 8192
+    temperature: 0.3
+    enabled: false
+
+# Model Routing Rules
+routing:
+  trading_decision: secondary
+  market_analysis: secondary
+  news_summary: secondary
+  sentiment_analysis: secondary
+  chart_analysis: secondary
+  report_reading: secondary
+  private_data: secondary
+  chat: secondary
+
+  # Fallback chain when primary is unavailable
+  fallback_chain:
+    - secondary
+    - primary
+    - local
