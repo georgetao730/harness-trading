@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-const API_BASE = "/api";
+const API_BASE = '/api';
 
 // ==================== Types ====================
 
-export type ExecutionMode = "dry_run" | "approval" | "auto";
+export type ExecutionMode = 'dry_run' | 'approval' | 'auto';
 
 export interface ThinkingStep {
-  type: "skill" | "reasoning" | "risk";
+  type: 'skill' | 'reasoning' | 'risk';
   title: string;
   detail: string;
 }
@@ -96,7 +96,7 @@ export interface HarnessValidatorRule {
   description: string;
   enabled: boolean;
   value: string;
-  type: "toggle" | "number" | "select";
+  type: 'toggle' | 'number' | 'select';
   options?: string[];
 }
 
@@ -168,7 +168,7 @@ export interface SkillsResponse {
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
     ...options,
   });
   if (!res.ok) {
@@ -180,30 +180,30 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
 // ---- Health ----
 export async function healthCheck() {
-  return request<{ status: string; app: string; env: string }>("/health");
+  return request<{ status: string; app: string; env: string }>('/health');
 }
 
 // ---- Agent ----
-export async function agentChat(message: string, taskType = "chat"): Promise<ChatResponse> {
-  return request<ChatResponse>("/agent/chat", {
-    method: "POST",
+export async function agentChat(message: string, taskType = 'chat'): Promise<ChatResponse> {
+  return request<ChatResponse>('/agent/chat', {
+    method: 'POST',
     body: JSON.stringify({ message, task_type: taskType }),
   });
 }
 
 export async function getAgentMode(): Promise<{ mode: ExecutionMode }> {
-  return request<{ mode: ExecutionMode }>("/agent/mode");
+  return request<{ mode: ExecutionMode }>('/agent/mode');
 }
 
 export async function setAgentMode(mode: ExecutionMode): Promise<{ mode: ExecutionMode }> {
-  return request<{ mode: ExecutionMode }>("/agent/mode", {
-    method: "POST",
+  return request<{ mode: ExecutionMode }>('/agent/mode', {
+    method: 'POST',
     body: JSON.stringify({ mode }),
   });
 }
 
 export async function getSkills(): Promise<SkillsResponse> {
-  return request<SkillsResponse>("/agent/skills");
+  return request<SkillsResponse>('/agent/skills');
 }
 
 // ---- Trading ----
@@ -215,70 +215,68 @@ export async function placeOrder(data: {
   order_type?: string;
   reason?: string;
 }): Promise<OrderResponse> {
-  return request<OrderResponse>("/trading/order", {
-    method: "POST",
+  return request<OrderResponse>('/trading/order', {
+    method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function getPortfolio(): Promise<PortfolioResponse> {
-  return request<PortfolioResponse>("/trading/portfolio");
+  return request<PortfolioResponse>('/trading/portfolio');
 }
 
 export async function getOrders(): Promise<OrdersResponse> {
-  return request<OrdersResponse>("/trading/orders");
+  return request<OrdersResponse>('/trading/orders');
 }
 
 // ---- Harness ----
 
 export async function getHarnessStatus(): Promise<HarnessStatus> {
-  return request<HarnessStatus>("/harness/status");
+  return request<HarnessStatus>('/harness/status');
 }
 
 export async function setHarnessMode(mode: ExecutionMode): Promise<{ mode: ExecutionMode }> {
-  return request<{ mode: ExecutionMode }>("/harness/mode", {
-    method: "POST",
+  return request<{ mode: ExecutionMode }>('/harness/mode', {
+    method: 'POST',
     body: JSON.stringify({ mode }),
   });
 }
 
 export async function triggerCircuitBreaker(
-  reason = "Manual trigger"
+  reason = 'Manual trigger',
 ): Promise<{ status: string; reason: string }> {
   return request<{ status: string; reason: string }>(
     `/harness/circuit-breaker/trigger?reason=${encodeURIComponent(reason)}`,
-    { method: "POST" }
+    { method: 'POST' },
   );
 }
 
 export async function resetCircuitBreaker(): Promise<{ status: string }> {
-  return request<{ status: string }>("/harness/circuit-breaker/reset", {
-    method: "POST",
+  return request<{ status: string }>('/harness/circuit-breaker/reset', {
+    method: 'POST',
   });
 }
 
 export async function getHarnessConfig(): Promise<HarnessConfig> {
-  return request<HarnessConfig>("/harness/config");
+  return request<HarnessConfig>('/harness/config');
 }
 
 // ---- Market Data ----
 
 export async function getMarketIndices(): Promise<IndicesResponse> {
-  return request<IndicesResponse>("/trading/market/indices");
+  return request<IndicesResponse>('/trading/market/indices');
 }
 
 export async function getStockQuote(symbol: string): Promise<QuoteResponse> {
-  return request<QuoteResponse>(
-    `/trading/market/quote?symbol=${encodeURIComponent(symbol)}`
-  );
+  return request<QuoteResponse>(`/trading/market/quote?symbol=${encodeURIComponent(symbol)}`);
 }
 
 export async function getKline(
   symbol: string,
-  period = "daily",
-  count = 30
+  period = 'daily',
+  count = 30,
 ): Promise<KlineResponse> {
   return request<KlineResponse>(
-    `/trading/market/kline?symbol=${encodeURIComponent(symbol)}&period=${period}&count=${count}`
+    `/trading/market/kline?symbol=${encodeURIComponent(symbol)}&period=${period}&count=${count}`,
   );
 }

@@ -61,6 +61,7 @@ routing:
   report_reading: secondary
   private_data: secondary
   chat: secondary
+  reasoning: primary  # chain-of-thought → use best reasoning model
 
   # Fallback chain when primary is unavailable
   fallback_chain:

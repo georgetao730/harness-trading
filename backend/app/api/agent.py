@@ -104,6 +104,76 @@ async def list_skills():
     return {"skills": skill_registry.list_all()}
 
 
+@router.get("/workflows")
+async def list_workflows():
+    """List all registered workflows."""
+    from ..workflows.engine import workflow_registry
+    return workflow_registry.list_all()
+
+
+@router.post("/workflows/run")
+async def run_workflow(req: dict):
+    """Run a workflow by name with inputs."""
+    from ..workflows.engine import get_engine, workflow_registry
+
+    wf_name = req.get("workflow", "")
+    inputs = req.get("inputs", {})
+
+    if not wf_name:
+        return {"error": "workflow name required"}
+
+    wf = workflow_registry.get(wf_name)
+    if wf is None:
+        return {"error": f"Workflow not found: {wf_name}"}
+
+    engine = get_engine()
+    try:
+        run = await engine.run(wf_name, inputs)
+        return run.to_dict()
+    except Exception as e:
+        return {"status": "failed", "error": str(e), "stages": []}
+
+
+@router.get("/channels")
+async def list_channels():
+    """List all active channels (feeds, alerts, brokers)."""
+    from ..channels.registry import channel_registry
+    return channel_registry.snapshot()
+
+
+@router.get("/knowledge/search")
+async def search_knowledge(q: str = "", top_k: int = 5):
+    """Search knowledge garden with BM25."""
+    from ..knowledge.garden import get_garden
+    g = get_garden()
+    return {"query": q, "results": g.search(q, top_k)}
+
+
+@router.get("/knowledge/candidates")
+async def list_knowledge_candidates():
+    """List knowledge entries with status=candidate."""
+    from ..knowledge.garden import get_garden
+    return {"candidates": get_garden().list_candidates()}
+
+
+@router.post("/knowledge/promote")
+async def promote_knowledge(req: dict):
+    """Promote a candidate knowledge entry."""
+    from ..knowledge.garden import get_garden
+    entry_id = req.get("id", "")
+    if not entry_id:
+        return {"error": "id required"}
+    ok = get_garden().promote(entry_id)
+    return {"id": entry_id, "promoted": ok}
+
+
+@router.get("/knowledge/stats")
+async def knowledge_stats():
+    """Get knowledge garden statistics."""
+    from ..knowledge.garden import get_garden
+    return get_garden().stats
+
+
 @router.websocket("/ws")
 async def agent_websocket(websocket: WebSocket):
     """WebSocket for real-time agent communication."""

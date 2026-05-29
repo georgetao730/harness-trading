@@ -17,11 +17,5 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "keywords": [
-    "agent",
-    "hooks",
-    "claude-code",
-    "codex",
-    "cursor"
-  ]
+  "keywords": ["agent", "hooks", "claude-code", "codex", "cursor"]
 }

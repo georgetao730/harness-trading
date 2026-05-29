@@ -1,0 +1,39 @@
+# Codex (OpenAI) Adapter — Harness Workflow Launcher
+#
+# 将此配置添加到 Codex 的 agent config 或
+# `.codex.yaml` 工具定义中。
+#
+# 用法: Codex agent 可通过 harness_workflow_run 函数
+# 调用 Harness 工作流。
+
+tools:
+  - name: harness_workflow_run
+    description: >
+      Run a workflow in the Harness Trading system.
+      Available workflows: strategy-spec, backtest, paper-trade, live-trade.
+    parameters:
+      type: object
+      properties:
+        workflow:
+          type: string
+          description: Workflow name (strategy-spec|backtest|paper-trade|live-trade)
+        inputs:
+          type: object
+          description: Workflow input parameters as JSON object
+      required: [workflow, inputs]
+    handler:
+      type: shell
+      command: |
+        cd /path/to/harness-trading
+        python packages/agentic-hooks/src/harness_launcher.py "$workflow" --inputs '$inputs'
+
+  - name: harness_workflows_list
+    description: List all available workflows in Harness Trading
+    parameters:
+      type: object
+      properties: {}
+    handler:
+      type: shell
+      command: |
+        cd /path/to/harness-trading
+        python packages/agentic-hooks/src/harness_launcher.py --list

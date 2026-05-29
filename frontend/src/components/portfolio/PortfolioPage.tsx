@@ -1,34 +1,34 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { cn } from "@/lib/utils";
+import { getOrders, getPortfolio } from '@/lib/api';
+import type { PaperOrder, PortfolioPosition, PortfolioSummary } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  PieChart,
   BarChart3,
-  Search,
+  DollarSign,
   Download,
   Filter,
+  PieChart,
   RefreshCw,
-} from "lucide-react";
+  Search,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  LineChart,
+  CartesianGrid,
+  Cell,
   Line,
+  LineChart,
+  Pie,
+  PieChart as RePieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import { getPortfolio, getOrders } from "@/lib/api";
-import type { PortfolioSummary, PortfolioPosition, PaperOrder } from "@/lib/api";
+} from 'recharts';
 
-const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6"];
+const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export function PortfolioPage() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
@@ -39,10 +39,7 @@ export function PortfolioPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [portfolioData, ordersData] = await Promise.all([
-        getPortfolio(),
-        getOrders(),
-      ]);
+      const [portfolioData, ordersData] = await Promise.all([getPortfolio(), getOrders()]);
       setSummary(portfolioData.summary);
       setPositions(portfolioData.positions);
       setOrders(ordersData.orders);
@@ -98,28 +95,28 @@ export function PortfolioPage() {
       <div className="grid grid-cols-4 gap-3">
         <StatCard
           label="总资产"
-          value={summary ? `¥${(totalValue / 10000).toFixed(2)}万` : "--"}
+          value={summary ? `¥${(totalValue / 10000).toFixed(2)}万` : '--'}
           change={totalPnlPct}
           icon={DollarSign}
           color="text-[var(--color-primary)]"
         />
         <StatCard
           label="总盈亏"
-          value={summary ? `¥${totalPnl.toLocaleString()}` : "--"}
+          value={summary ? `¥${totalPnl.toLocaleString()}` : '--'}
           change={totalPnlPct}
           icon={TrendingUp}
-          color={totalPnl >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}
+          color={totalPnl >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}
         />
         <StatCard
           label="持仓数量"
-          value={summary ? summary.position_count.toString() : "0"}
+          value={summary ? summary.position_count.toString() : '0'}
           subtext="只标的"
           icon={PieChart}
           color="text-purple-400"
         />
         <StatCard
           label="现金余额"
-          value={summary ? `¥${(summary.cash / 10000).toFixed(2)}万` : "--"}
+          value={summary ? `¥${(summary.cash / 10000).toFixed(2)}万` : '--'}
           icon={BarChart3}
           color="text-cyan-400"
         />
@@ -130,12 +127,40 @@ export function PortfolioPage() {
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
           <h3 className="text-sm font-semibold mb-3">资产概览</h3>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={[{ name: "初始", value: 1000000 }, { name: "当前", value: totalValue }]}>
+            <LineChart
+              data={[
+                { name: '初始', value: 1000000 },
+                { name: '当前', value: totalValue },
+              ]}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3d" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
-              <Tooltip contentStyle={{ backgroundColor: "#14141f", border: "1px solid #2a2a3d", borderRadius: "8px", fontSize: "12px" }} />
-              <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: "#6366f1" }} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: '#64748b' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#64748b' }}
+                axisLine={false}
+                tickLine={false}
+                domain={['auto', 'auto']}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#14141f',
+                  border: '1px solid #2a2a3d',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#6366f1"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#6366f1' }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -145,18 +170,36 @@ export function PortfolioPage() {
             <h3 className="text-sm font-semibold mb-3">持仓分布</h3>
             <ResponsiveContainer width="100%" height={200}>
               <RePieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
                   {pieData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: "#14141f", border: "1px solid #2a2a3d", borderRadius: "8px", fontSize: "12px" }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#14141f',
+                    border: '1px solid #2a2a3d',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
               </RePieChart>
             </ResponsiveContainer>
             <div className="flex justify-center gap-4 mt-2">
               {positions.map((p, i) => (
                 <div key={p.symbol} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                  <span
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                  />
                   <span className="text-[10px] text-[var(--color-text-muted)]">{p.symbol}</span>
                 </div>
               ))}
@@ -169,7 +212,9 @@ export function PortfolioPage() {
             <div className="text-center py-8">
               <PieChart className="w-8 h-8 text-[var(--color-text-muted)] mx-auto mb-2" />
               <p className="text-xs text-[var(--color-text-muted)]">暂无持仓</p>
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-1">通过 AI 助手下达交易指令开始</p>
+              <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                通过 AI 助手下达交易指令开始
+              </p>
             </div>
           </div>
         )}
@@ -202,7 +247,10 @@ export function PortfolioPage() {
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {positions.map((p) => (
-                <tr key={p.symbol} className="hover:bg-[var(--color-surface-hover)]/30 transition-colors">
+                <tr
+                  key={p.symbol}
+                  className="hover:bg-[var(--color-surface-hover)]/30 transition-colors"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-lg bg-[var(--color-surface-hover)] flex items-center justify-center">
@@ -215,7 +263,9 @@ export function PortfolioPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <p className="text-xs">{p.shares} 股</p>
-                    <p className="text-[10px] text-[var(--color-text-muted)]">成本 ¥{p.avg_cost.toFixed(2)}</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                      成本 ¥{p.avg_cost.toFixed(2)}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <p className="text-xs">¥{p.current_price.toFixed(2)}</p>
@@ -226,19 +276,23 @@ export function PortfolioPage() {
                   <td className="px-4 py-3 text-right">
                     <p
                       className={cn(
-                        "text-xs font-medium",
-                        p.unrealized_pnl >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+                        'text-xs font-medium',
+                        p.unrealized_pnl >= 0
+                          ? 'text-[var(--color-success)]'
+                          : 'text-[var(--color-danger)]',
                       )}
                     >
-                      {p.unrealized_pnl >= 0 ? "+" : ""}¥{p.unrealized_pnl.toFixed(2)}
+                      {p.unrealized_pnl >= 0 ? '+' : ''}¥{p.unrealized_pnl.toFixed(2)}
                     </p>
                     <p
                       className={cn(
-                        "text-[10px]",
-                        p.unrealized_pnl_pct >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+                        'text-[10px]',
+                        p.unrealized_pnl_pct >= 0
+                          ? 'text-[var(--color-success)]'
+                          : 'text-[var(--color-danger)]',
                       )}
                     >
-                      {p.unrealized_pnl_pct >= 0 ? "+" : ""}
+                      {p.unrealized_pnl_pct >= 0 ? '+' : ''}
                       {p.unrealized_pnl_pct.toFixed(2)}%
                     </p>
                   </td>
@@ -247,9 +301,7 @@ export function PortfolioPage() {
             </tbody>
           </table>
         ) : (
-          <div className="p-6 text-center text-xs text-[var(--color-text-muted)]">
-            暂无持仓数据
-          </div>
+          <div className="p-6 text-center text-xs text-[var(--color-text-muted)]">暂无持仓数据</div>
         )}
       </div>
 
@@ -268,17 +320,17 @@ export function PortfolioPage() {
                 <div className="flex items-center gap-3">
                   <span
                     className={cn(
-                      "px-1.5 py-0.5 rounded text-[9px] font-medium",
-                      o.action === "buy"
-                        ? "bg-green-500/15 text-green-400"
-                        : "bg-red-500/15 text-red-400"
+                      'px-1.5 py-0.5 rounded text-[9px] font-medium',
+                      o.action === 'buy'
+                        ? 'bg-green-500/15 text-green-400'
+                        : 'bg-red-500/15 text-red-400',
                     )}
                   >
-                    {o.action === "buy" ? "买入" : "卖出"}
+                    {o.action === 'buy' ? '买入' : '卖出'}
                   </span>
                   <div>
                     <p className="text-xs font-medium">{o.symbol}</p>
-                    <p className="text-[10px] text-[var(--color-text-muted)]">{o.reason || "--"}</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">{o.reason || '--'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-right">
@@ -286,29 +338,36 @@ export function PortfolioPage() {
                     <p className="text-[10px] text-[var(--color-text-muted)]">
                       ¥{o.price} x {o.quantity}
                     </p>
-                    <p className="text-xs font-medium">¥{(o.price * o.quantity).toLocaleString()}</p>
+                    <p className="text-xs font-medium">
+                      ¥{(o.price * o.quantity).toLocaleString()}
+                    </p>
                   </div>
                   <span
                     className={cn(
-                      "px-1.5 py-0.5 rounded text-[9px] font-medium",
-                      o.status === "filled" && "bg-[var(--color-success)]/15 text-[var(--color-success)]",
-                      o.status === "pending" && "bg-[var(--color-warning)]/15 text-[var(--color-warning)]",
-                      o.status === "rejected" && "bg-[var(--color-danger)]/15 text-[var(--color-danger)]"
+                      'px-1.5 py-0.5 rounded text-[9px] font-medium',
+                      o.status === 'filled' &&
+                        'bg-[var(--color-success)]/15 text-[var(--color-success)]',
+                      o.status === 'pending' &&
+                        'bg-[var(--color-warning)]/15 text-[var(--color-warning)]',
+                      o.status === 'rejected' &&
+                        'bg-[var(--color-danger)]/15 text-[var(--color-danger)]',
                     )}
                   >
-                    {o.status === "filled" ? "已成交" : o.status === "pending" ? "待处理" : "已拒绝"}
+                    {o.status === 'filled'
+                      ? '已成交'
+                      : o.status === 'pending'
+                        ? '待处理'
+                        : '已拒绝'}
                   </span>
                   <span className="text-[10px] text-[var(--color-text-muted)] w-40">
-                    {new Date(o.created_at).toLocaleString("zh-CN")}
+                    {new Date(o.created_at).toLocaleString('zh-CN')}
                   </span>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="p-6 text-center text-xs text-[var(--color-text-muted)]">
-            暂无交易记录
-          </div>
+          <div className="p-6 text-center text-xs text-[var(--color-text-muted)]">暂无交易记录</div>
         )}
       </div>
     </div>
@@ -333,17 +392,19 @@ function StatCard({
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">{label}</span>
-        <Icon className={cn("w-4 h-4", color)} />
+        <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+          {label}
+        </span>
+        <Icon className={cn('w-4 h-4', color)} />
       </div>
       <p className="text-lg font-bold">{value}</p>
       {change !== undefined && (
         <p
           className={`text-[10px] font-medium mt-1 ${
-            change >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+            change >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'
           }`}
         >
-          {change >= 0 ? "+" : ""}
+          {change >= 0 ? '+' : ''}
           {change.toFixed(2)}%
         </p>
       )}

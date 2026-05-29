@@ -17,27 +17,34 @@ Get from zero to a running Harness Trading scaffold in under five minutes. Every
 
 ---
 
-## 2. 30-second start (Docker)
+## 2. 30-second start
 
 ```bash
 git clone <this-repo> harness-trading && cd harness-trading
 cp .env.example .env
 # edit .env, set at least one LLM key — DeepSeek is the default routing target
 echo "DEEPSEEK_API_KEY=sk-your-deepseek-key" >> .env
-docker compose up -d
-docker compose logs -f                # optional: tail logs
+
+# Terminal 1: backend
+cd backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 18766
+
+# Terminal 2: frontend
+cd frontend
+npm install
+npm run dev -- --webpack -p 3000
 ```
 
 ✅ **Verify**
 
 ```bash
-curl http://localhost:8000/api/health
+curl http://localhost:18766/api/health
 # {"status":"ok","app":"Harness Trading","env":"development"}
 ```
 
 Open `http://localhost:3000` — you should see the Dashboard with three panels: agent chat (left), market overview (center), safety harness console (right).
-
-> Prefer running locally without Docker? See [Local dev](#10-local-dev-without-docker) at the bottom.
 
 ---
 
@@ -60,7 +67,7 @@ The agent will route the request through [`config/providers.yaml`](config/provid
 The default mode is `dry_run`, so the order is **logged but not executed**. Time-of-day check is on by default; if you are outside Chinese trading hours, set `time_check.enabled: false` in [`config/harness.yaml`](config/harness.yaml) and restart the backend.
 
 ```bash
-curl -X POST http://localhost:8000/api/trading/order \
+curl -X POST http://localhost:18766/api/trading/order \
   -H "Content-Type: application/json" \
   -d '{
     "symbol":  "600519",
@@ -105,7 +112,7 @@ curl -X POST http://localhost:8000/api/trading/order \
 From the dashboard top bar, click the mode toggle. Or via API:
 
 ```bash
-curl -X POST http://localhost:8000/api/agent/mode \
+curl -X POST http://localhost:18766/api/agent/mode \
   -H "Content-Type: application/json" \
   -d '{"mode":"approval"}'
 ```
@@ -119,9 +126,9 @@ curl -X POST http://localhost:8000/api/agent/mode \
 Demo the kill-switch:
 
 ```bash
-curl -X POST "http://localhost:8000/api/harness/circuit-breaker/trigger?reason=demo"
+curl -X POST "http://localhost:18766/api/harness/circuit-breaker/trigger?reason=demo"
 # every subsequent order will be rejected up-front
-curl -X POST http://localhost:8000/api/harness/circuit-breaker/reset
+curl -X POST http://localhost:18766/api/harness/circuit-breaker/reset
 ```
 
 ✅ **Verify** — between trigger and reset, any `POST /api/trading/order` returns `circuit_breaker_open`.
@@ -200,32 +207,26 @@ Restart the backend after edits; `GET /api/agent/skills` confirms providers are 
 
 ## 9. What's next: extend the scaffold
 
-The fun part. Two extension points are first-class today; two more land in Phase 2.
+The fun part. Most extension points are first-class today.
 
-| Extension point        | Today                                                                 | Phase 2 |
-|------------------------|-----------------------------------------------------------------------|---------|
-| **Add your own skill** | Subclass [`BaseSkill`](backend/app/agent/skills/base.py); drop a `.py` under [`backend/app/agent/skills/`](backend/app/agent/skills/); restart. | `make skill new NAME=...` scaffolds `SKILL.md` + handler + schema; auto-injection into agent prompt. |
-| **Tune LLM routing**   | Edit [`config/providers.yaml`](config/providers.yaml).                | Per-skill routing overrides; cost / latency-aware fallback. |
-| **Define a workflow**  | *(Phase 2)*                                                           | YAML-driven `strategy → backtest → paper → live` pipelines under `workflows/`. |
-| **Persist state**      | *(Phase 2)*                                                           | SQLAlchemy + Redis; durable orders / positions / agent memory. |
+| Extension point        | How |
+|------------------------|-----|
+| **Run a workflow**     | `POST /api/agent/workflows/run` with `{"workflow":"backtest","inputs":{...}}`. 4 workflows ship built-in. See [workflows/](workflows/). |
+| **Add your own skill** | Drop a folder under `skills/` with `SKILL.md` + `handler.py` + `schema.json`; restart. |
+| **Search knowledge**   | `GET /api/agent/knowledge/search?q=风控` — BM25 full-text search across indexed entries. |
+| **Run eval suite**     | `POST /api/agent/workflows/run` with eval workflow, or use the eval harness programmatically. |
+| **Tune LLM routing**   | Edit [`config/providers.yaml`](config/providers.yaml). Per-task routing with fallback chain. |
+| **Persist state**      | *(planned)* SQLAlchemy + Redis for durable orders / positions / agent memory. |
 
-See the **Roadmap** section of [README.md](README.md#roadmap) for the full plan and links to the upcoming Phase 2 Tech Spec.
+See the **Roadmap** section of [README.md](README.md#roadmap) for the full plan.
 
 ---
 
-## 10. Local dev without Docker
+## 10. Docker (alternative)
 
 ```bash
-# backend
-cd backend
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# frontend (in another shell)
-cd frontend
-npm install
-npm run dev
+docker compose up -d                 # backend :18766 + frontend :3000
+docker compose logs -f               # optional: tail logs
 ```
 
 ✅ **Verify** — same as §2.
@@ -235,16 +236,16 @@ npm run dev
 ## FAQ
 
 **Q: Frontend shows "Backend not available".**
-The backend isn't running, or port 8000 is taken. `curl http://localhost:8000/api/health` to confirm; check `docker compose logs backend` if using Docker.
+The backend isn't running, or port 18766 is taken. `curl http://localhost:18766/api/health` to confirm.
 
 **Q: Chat replies "AI service unavailable".**
 LLM config issue. Check (1) at least one API key in `.env`, (2) the chosen provider has `enabled: true` in `providers.yaml`, (3) network reachability to the provider's endpoint.
 
 **Q: No market data showing.**
-Index list falls back to mock data on Eastmoney outage; per-symbol quotes / K-lines return empty on outage. If even mocks are missing, check the browser console and backend logs.
+Market data comes from Sina Finance + Tencent APIs. If the APIs are unreachable, the system falls back to reasonable default values. Check the backend logs for details.
 
-**Q: Eastmoney times out on macOS.**
-The market service uses a `curl` subprocess to bypass macOS proxy quirks, so this should be rare. If it persists, the system auto-degrades to mock data — no action needed for development.
+**Q: Frontend build error (Turbopack panic).**
+Chinese characters in the project path cause Turbopack to crash. Use `npm run dev -- --webpack` to force Webpack instead.
 
 **Q: How do I trade real money?**
 You can't, today. There is **no live broker adapter** yet — that lands in Phase 3. All execution flows through `paper_trading.py`. Even when live broker support arrives, **never bypass the safety harness** in production.

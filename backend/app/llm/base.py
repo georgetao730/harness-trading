@@ -27,6 +27,7 @@ class TaskType(str, Enum):
     REPORT_READING = "report_reading"
     PRIVATE_DATA = "private_data"
     CHAT = "chat"
+    REASONING = "reasoning"  # chain-of-thought, multi-step reasoning tasks
 
 
 @dataclass

@@ -39,8 +39,8 @@ You bring keys; it brings primitives. **Channels** (feeds · alerts · surfaces 
 
 - **Install in 60 seconds** *(Phase 2)* — `npm i -g harness-trading && harness-trading onboard`. A Node shell sets up Python core, Local-first Gateway, daemon, dashboard, and channel credentials in one wizard.
 - **Channels are first-class** — Feeds (Eastmoney / Tushare / Binance) · Alerts (DingTalk / Telegram / Email) · Surfaces (CLI / Web / iOS / Voice) · Brokers (Paper today; live as opt-in plugins, always behind the harness).
-- **Pluggable Skills** — folder-shaped modules with `SKILL.md` (frontmatter: `when_to_use` / `when_to_skip` / `risk_class`) + `handler.py` + `schema.json`. Two ship today; directory-style protocol lands in Phase 2.
-- **Composable Workflows** *(Phase 2)* — declarative pipelines for `strategy → backtest → paper → live`, with explicit user-confirm gates between stages.
+- **Pluggable Skills** — folder-shaped modules with `SKILL.md` (frontmatter: `when_to_use` / `when_to_skip` / `risk_class`) + `handler.py` + `schema.json`. Two ship built-in; directory-style protocol ready.
+- **Composable Workflows** — YAML-driven pipelines for `strategy → backtest → paper → live`, with explicit user-confirm gates between stages. 4 built-in workflows ship today.
 - **Multi-LLM Router** — Anthropic / OpenAI / DeepSeek / Moonshot / Qwen / GLM / Google / local Ollama, with per-task routing in [`config/providers.yaml`](config/providers.yaml). Reasoning channel for hard decisions.
 - **Safety Harness (non-bypassable)** — declarative validator chain + risk controller + circuit breaker + token-gated broker submit, configured in [`config/harness.yaml`](config/harness.yaml).
 - **Three Execution Modes** — `dry_run` (log-only), `approval` (human-in-the-loop), `auto` (within risk envelope).
@@ -59,7 +59,10 @@ Runtime: **Docker 24+** (recommended) or **Python 3.12+** & **Node 18+** for loc
 ```bash
 git clone <this-repo> harness-trading && cd harness-trading
 cp .env.example .env                 # then put DEEPSEEK_API_KEY=sk-... in .env
-docker compose up -d                 # backend :8000 + frontend :3000
+# Start backend
+cd backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 18766 &
+# Start frontend (another terminal)
+cd frontend && npm run dev -- --webpack -p 3000 &
 open http://localhost:3000
 ```
 
@@ -81,9 +84,9 @@ Full guide: [QUICKSTART.md](QUICKSTART.md).
                        │ ws://127.0.0.1 (local-first)
                        ▼
    ┌───────────────────────────────────────┐
-   │ Python Core  (today + Phase 2)        │
-   │   Agent · Skills · Workflows*         │
-   │   Knowledge* · Multi-LLM Router       │
+   │ Python Core                           │
+   │   Agent · Skills · Workflows          │
+   │   Knowledge · Eval · Multi-LLM Router │
    └───────────────────┬───────────────────┘
                        │
         ┌──────────────┼──────────────┐
@@ -100,7 +103,7 @@ Full guide: [QUICKSTART.md](QUICKSTART.md).
         └─────────────────────────────┘
 ```
 
-`*` Workflows / Knowledge / Live brokers land in Phase 2; Node Shell is the openclaw-shaped delivery layer that turns the whole stack into a one-line install.
+- Node Shell is the planned delivery layer that turns the whole stack into a one-line install.
 
 ---
 
@@ -108,13 +111,17 @@ Full guide: [QUICKSTART.md](QUICKSTART.md).
 
 | Layer       | Stack |
 |-------------|-------|
-| **Node Shell** *(Phase 2)* | npm pkg `harness-trading` · CLI · supervisor · ws-bridge · `agentic-hooks` · Next.js host |
+| **Node Shell** *(planned)* | npm pkg `harness-trading` · CLI · supervisor · ws-bridge · `agentic-hooks` |
 | Backend     | FastAPI · Python 3.12 · asyncio · Loguru · Pydantic Settings + YAML |
+| Workflows   | YAML-driven pipeline engine; 4 built-in (backtest / live-trade / paper-trade / strategy-spec) |
+| Agents      | 5 roles (backtest-runner / strategy-designer / trade-operator / risk-reviewer / incident-rca) |
 | LLM         | OpenAI SDK · Anthropic SDK · Google GenAI · DeepSeek / Moonshot / Qwen / GLM (OpenAI-compatible) · Ollama |
-| Market      | Eastmoney HTTP API (A-shares) via `curl` subprocess; 30s in-memory cache; mock fallback |
+| Market      | Sina Finance + Tencent APIs via `urllib`; 30s in-memory cache; fallback on outage |
+| Eval        | L1 literal / L2 LLM-judge / L3 end-to-end harness with cross-model matrix |
+| Knowledge   | BM25 full-text search garden with candidates→promote curation flow |
 | Frontend    | Next.js 16 · React 19 · Tailwind CSS 4 · Recharts · Lucide · TypeScript |
-| Persistence | SQLAlchemy + SQLite (default) / Postgres (production) — *Phase 2* |
-| Deploy      | npm global *(Phase 2)* · Docker Compose *(today)* |
+| Persistence | In-memory (today); SQLAlchemy + SQLite/Postgres *(planned)* |
+| Deploy      | Local uvicorn + Next.js dev server |
 
 > Persistence (SQLAlchemy / Postgres) and task queues are intentionally **process-local** today; both land in Phase 2.
 
@@ -133,7 +140,7 @@ Four first-class extension surfaces — three that ship Phase 2's directory-styl
 
 Each skill subclasses [`BaseSkill`](backend/app/agent/skills/base.py) and is auto-registered into the agent's tool list at startup.
 
-### Phase 2: directory-style skill / workflow / agent / channel protocol
+### Directory-style skill / workflow / agent / channel protocol (shipped)
 
 ```
 skills/<your_skill>/
@@ -141,14 +148,12 @@ skills/<your_skill>/
 ├── handler.py        # @skill-decorated async run()
 └── schema.json       # input/output JSON schema
 
-workflows/<your_workflow>.md           # stages + user-confirm gates
-agents/<your_agent>.md                 # role + allowed_skills + llm_routing
-backend/app/channels/<type>/<name>/    # feed / alert / broker plugin
+workflows/<your_workflow>.yaml        # stages + user-confirm gates
+agents/<your_agent>.md                # role + allowed_skills + llm_routing
+backend/app/channels/<type>/<name>/   # feed / alert / broker plugin
 ```
 
-Channels (feeds · alerts · surfaces · brokers) are first-class — onboard wizard wires them up; the Safety Harness sits between the agent and any broker channel.
-
-Detailed protocol: [docs/tech-spec-phase2.md](docs/tech-spec-phase2.md).
+Channels (feeds · alerts · surfaces · brokers) are first-class; the Safety Harness sits between the agent and any broker channel. 4 workflows and 5 agent roles ship out of the box. See [workflows/](workflows/) and [agents/](agents/).
 
 ---
 
@@ -194,7 +199,14 @@ The harness runs in every mode — `dry_run` still records the full validation t
 | GET  | `/mode` | Read current execution mode |
 | POST | `/mode` | Switch mode (`dry_run` / `approval` / `auto`) |
 | GET  | `/skills` | List registered skills |
-| WS   | `/ws` | Streaming channel (backend ready, frontend Phase 2) |
+| GET  | `/workflows` | List available workflows |
+| POST | `/workflows/run` | Execute a workflow |
+| GET  | `/channels` | Channel status snapshot |
+| GET  | `/knowledge/search` | BM25 search knowledge entries |
+| GET  | `/knowledge/candidates` | List candidate knowledge entries |
+| POST | `/knowledge/promote` | Promote a candidate entry |
+| GET  | `/knowledge/stats` | Knowledge garden statistics |
+| WS   | `/ws` | Streaming channel |
 
 ### Trading — `/api/trading`
 
@@ -217,46 +229,50 @@ The harness runs in every mode — `dry_run` still records the full validation t
 | POST | `/circuit-breaker/trigger` | Manually trip the breaker |
 | POST | `/circuit-breaker/reset`   | Reset after a trip |
 
-Interactive docs: `http://localhost:8000/docs`.
+Interactive docs: `http://localhost:18766/docs`.
 
 ---
 
 ## Roadmap
 
-**Phase 1 — *current*** · pluggable skills · safety harness · paper trading · multi-LLM routing · web dashboard
+**Phase 1 — *done*** · pluggable skills · safety harness · paper trading · multi-LLM routing · web dashboard · 4 workflows · 5 agent roles · channels (feeds/alerts/brokers) · L1/L2/L3 eval harness · BM25 knowledge garden
 
-**Phase 2 — assistant** · `npm i -g harness-trading` global package · onboard wizard · local-first Gateway · `agentic-hooks` standalone npm package · directory-style skills with `SKILL.md` · 4 workflows (`strategy-spec / backtest / paper-trade / live-trade`) · 5 agent roles · channels first-class (feeds · alerts · surfaces · brokers) · persistence (SQLAlchemy + SQLite/Postgres) · L1/L2/L3 eval harness · knowledge layer · macOS menu-bar app *(optional)*
+**Phase 2 — *in progress*** · `npm i -g harness-trading` global package · onboard wizard · local-first Gateway · `agentic-hooks` standalone npm package · persistence (SQLAlchemy + SQLite/Postgres) · knowledge base frontend integration · settings/config persistence · comprehensive test suite
 
-**Phase 3 — production** · live broker adapters · multi-strategy orchestration · portfolio-level risk · observability (metrics + traces) · multi-user / RBAC · audit ledger
-
-Tech Spec for Phase 2: [docs/tech-spec-phase2.md](docs/tech-spec-phase2.md).
+**Phase 3 — *planned*** · live broker adapters (Tiger/Longbridge) · multi-strategy orchestration · portfolio-level risk · observability (metrics + traces) · multi-user / RBAC · audit ledger · macOS menu-bar app *(optional)*
 
 ---
 
 ## Project structure
 
-Today (Phase 1):
-
 ```
 harness-trading/
 ├── backend/                       # FastAPI + agent runtime
 │   └── app/
-│       ├── agent/skills/          # pluggable skills (extension point)
+│       ├── agent/                 # skills/ + roles/ + memory/
 │       ├── api/                   # /api/agent · /api/trading · /api/harness
+│       ├── channels/              # feeds · alerts · brokers (eastmoney + paper)
 │       ├── core/                  # config + event bus
+│       ├── eval/                  # L1/L2/L3 eval engine
 │       ├── execution/             # paper_trading.py
+│       ├── gateway/               # WebSocket dispatcher + methods
 │       ├── harness/               # validator chain · risk · circuit breaker
+│       ├── knowledge/             # BM25 search garden
 │       ├── llm/                   # multi-provider router
-│       └── services/              # market_data
-├── frontend/                      # Next.js 16 dashboard
+│       ├── services/              # market_data (Sina + Tencent)
+│       └── workflows/             # YAML pipeline engine
+├── frontend/                      # Next.js 16 dashboard (9 pages)
+├── skills/                        # drop-in skill modules
+├── workflows/                     # YAML workflow definitions
+├── agents/                        # agent role markdown specs
+├── knowledge/                     # markdown knowledge entries
+├── evals/                         # eval test cases + matrix
 ├── config/
 │   ├── harness.yaml               # safety rules
 │   └── providers.yaml             # LLM routing
-├── docker-compose.yml
+├── packages/                      # Node shell (CLI/supervisor/ws-bridge/agentic-hooks)
 └── .env.example
 ```
-
-Phase 2 introduces a Node shell (`packages/{cli,supervisor,ws-bridge,agentic-hooks,web}/`) alongside the Python core, plus root-level `skills/ workflows/ agents/ knowledge/ hooks/` directories — see [docs/tech-spec-phase2.md §4](docs/tech-spec-phase2.md#4-目录布局phase-2-落地形态).
 
 ---
 

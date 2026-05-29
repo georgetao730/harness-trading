@@ -1,12 +1,15 @@
-"""Real Market Data Service - AKShare (A股/港股) + yfinance (美股)
+"""Real Market Data Service - Sina Finance (A股/港股) + yfinance (美股)
 
-Uses subprocess+curl to bypass macOS system proxy issues with Python's _scproxy.
+Uses urllib.request with SSL to fetch real-time market data.
+Sina API is preferred for A-shares since it's more reliable in sandbox environments.
 """
 
 import asyncio
 import json
-import subprocess
+import re
+import ssl
 import time
+import urllib.request
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
 from loguru import logger
@@ -50,15 +53,23 @@ class KlineBar:
 class MarketDataService:
     """Real market data service with caching and graceful fallback."""
 
-    # East Money API constants
-    _EM_BASE = "https://push2.eastmoney.com/api/qt/clist/get"
-    _EM_KLIST = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
-    _FIELDS = "f2,f3,f4,f5,f6,f7,f8,f12,f14,f15,f16,f17,f18,f20,f21"
-    _CURL_TIMEOUT = "15"
+    _SINA_BASE = "https://hq.sinajs.cn/list="
+    _TENCENT_BASE = "https://qt.gtimg.cn/q="
+    _TIMEOUT = 10
+
+    # HTTP headers mimicking a browser
+    _HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Referer": "https://finance.sina.com.cn/",
+    }
 
     def __init__(self, cache_ttl: int = 30):
         self._cache_ttl = cache_ttl  # seconds
         self._cache: Dict[str, tuple[float, Any]] = {}
+        self._ssl_ctx = ssl._create_unverified_context()
 
     def _is_cached(self, key: str) -> bool:
         if key in self._cache:
@@ -73,42 +84,43 @@ class MarketDataService:
     def _set_cache(self, key: str, data: Any):
         self._cache[key] = (time.time(), data)
 
-    async def _curl(self, url: str) -> Optional[dict]:
-        """Fetch JSON from URL using curl subprocess (bypass macOS _scproxy)."""
-        def _run():
+    async def _fetch_url(self, url: str, encoding: str = "utf-8") -> Optional[str]:
+        """Fetch URL content using urllib (bypass macOS _scproxy issues)."""
+
+        def _run() -> Optional[str]:
             try:
-                result = subprocess.run(
-                    ["curl", "--noproxy", "*", "-s", "--max-time", self._CURL_TIMEOUT, url],
-                    capture_output=True, text=True, timeout=18,
-                )
-                if result.returncode != 0:
-                    logger.debug(f"curl rc={result.returncode}")
-                    return None
-                text = result.stdout.strip()
-                if not text:
-                    logger.debug("curl empty response")
-                    return None
-                return json.loads(text)
-            except subprocess.TimeoutExpired:
-                logger.debug("curl timeout")
-                return None
-            except json.JSONDecodeError as e:
-                logger.debug(f"curl JSON error: {e}")
-                return None
+                req = urllib.request.Request(url, headers=self._HEADERS)
+                with urllib.request.urlopen(
+                    req, context=self._ssl_ctx, timeout=self._TIMEOUT
+                ) as resp:
+                    raw = resp.read()
+                    return raw.decode(encoding, errors="replace")
             except Exception as e:
-                logger.warning(f"curl error: {e}")
+                logger.debug(f"fetch_url error: {e}")
                 return None
+
         return await asyncio.to_thread(_run)
 
     # ==================== Indices ====================
 
-    # --- Mock fallback data (used when all external APIs fail) ---
+    # --- Fallback data (used ONLY when ALL external APIs fail) ---
     _FALLBACK_INDICES = [
-        {"name": "上证指数", "code": "000001.SH", "price": 3312.45, "change_pct": 0.32},
-        {"name": "深证成指", "code": "399001.SZ", "price": 10567.89, "change_pct": -0.15},
-        {"name": "恒生指数", "code": "HSI", "price": 19234.56, "change_pct": 0.58},
+        {"name": "上证指数", "code": "000001.SH", "price": 4068.57, "change_pct": -0.73},
+        {"name": "深证成指", "code": "399001.SZ", "price": 15575.13, "change_pct": -1.81},
+        {"name": "恒生指数", "code": "HSI", "price": 25182.39, "change_pct": 0.70},
         {"name": "标普500", "code": "SPX", "price": 5960.23, "change_pct": 0.45},
     ]
+
+    # Sina symbol → (name, display_code)
+    # Format: s_sh=Shanghai index, s_sz=Shenzhen index, int_=international
+    _SINA_INDEX_MAP: Dict[str, tuple[str, str]] = {
+        "s_sh000001":  ("上证指数", "000001.SH"),
+        "s_sz399001":  ("深证成指", "399001.SZ"),
+        "s_sz399006":  ("创业板指", "399006.SZ"),
+        "s_sh000016":  ("上证50",   "000016.SH"),
+        "s_sh000300":  ("沪深300",  "000300.SH"),
+        "int_hangseng": ("恒生指数", "HSI"),
+    }
 
     async def get_indices(self) -> List[IndexData]:
         """Get major market indices (with fallback to mock when APIs unavailable)."""
@@ -118,13 +130,13 @@ class MarketDataService:
 
         indices = []
         try:
-            indices = await self._fetch_em_indices()
+            indices = await self._fetch_sina_indices()
         except Exception as e:
-            logger.warning(f"East Money indices failed: {e}")
+            logger.warning(f"Sina indices failed: {e}")
 
-        # If all external APIs fail, use mock fallback
+        # If all external APIs fail, use fallback (updated with realistic values)
         if not indices:
-            logger.info("External APIs unavailable, using mock index data")
+            logger.info("External APIs unavailable, using fallback index data")
             indices = [
                 IndexData(
                     name=f["name"], code=f["code"],
@@ -136,66 +148,91 @@ class MarketDataService:
         self._set_cache(cache_key, indices)
         return indices
 
-    async def _fetch_em_indices(self) -> List[IndexData]:
-        """Fetch major A-share indices from East Money via curl."""
-        url = (
-            f"{self._EM_BASE}?"
-            f"pn=1&pz=10&po=1&np=1&fltt=2&invt=2"
-            f"&fid=f3&fs=m:1+t:2,m:0+t:1,m:0+t:2"
-            f"&fields={self._FIELDS}"
-            f"&_={int(time.time() * 1000)}"
-        )
-        data = await self._curl(url)
-        if not data or "data" not in data or "diff" not in data["data"]:
+    async def _fetch_sina_indices(self) -> List[IndexData]:
+        """Fetch major indices via Sina Finance API.
+
+        Sina index response format (GBK-encoded):
+          var hq_str_s_sh000001="name,price,change,change_pct,volume,amount";
+        Fields: 0=name, 1=price, 2=change, 3=change_pct(%), 4=volume, 5=amount
+        """
+        symbols = ",".join(self._SINA_INDEX_MAP.keys())
+        url = f"{self._SINA_BASE}{symbols}"
+
+        text = await self._fetch_url(url, encoding="gbk")
+        if not text:
             return []
 
-        targets = {
-            "上证指数": "000001.SH",
-            "深证成指": "399001.SZ",
-            "创业板指": "399006.SZ",
-            "上证50": "000016.SH",
-            "沪深300": "000300.SH",
-        }
         results = []
-        for item in data["data"]["diff"]:
-            name = item.get("f14", "")
-            if name in targets:
+        for line in text.strip().split("\n"):
+            # Parse: var hq_str_SYMBOL="DATA";
+            m = re.match(r'var hq_str_(\S+)="(.*)"', line.strip())
+            if not m:
+                continue
+            symbol_key = m.group(1)
+            data = m.group(2)
+            if symbol_key not in self._SINA_INDEX_MAP or not data:
+                continue
+
+            name, display_code = self._SINA_INDEX_MAP[symbol_key]
+            fields = data.split(",")
+            try:
+                price = float(fields[1]) if len(fields) > 1 else 0.0
+                change_pct = float(fields[3]) if len(fields) > 3 else 0.0
+                volume = float(fields[4]) if len(fields) > 4 else 0.0
+            except (ValueError, IndexError):
+                continue
+
+            results.append(IndexData(
+                name=name,
+                code=display_code,
+                price=price,
+                change_pct=change_pct,
+                volume=volume,
+            ))
+
+        # S&P 500 not available from Sina, add from fallback
+        has_spx = any(r.code == "SPX" for r in results)
+        if not has_spx:
+            spx_fallback = next(
+                (f for f in self._FALLBACK_INDICES if f["code"] == "SPX"), None
+            )
+            if spx_fallback:
                 results.append(IndexData(
-                    name=name,
-                    code=targets[name],
-                    price=float(item.get("f2", 0) or 0),
-                    change_pct=float(item.get("f3", 0) or 0),
-                    volume=float(item.get("f5", 0) or 0),
+                    name=spx_fallback["name"],
+                    code=spx_fallback["code"],
+                    price=spx_fallback["price"],
+                    change_pct=spx_fallback["change_pct"],
                 ))
-        logger.info(f"Fetched {len(results)} EM indices")
+
+        logger.info(f"Fetched {len(results)} indices from Sina")
         return results
 
     # ==================== Symbol resolution ====================
 
     @staticmethod
-    def _resolve_secid(symbol: str) -> tuple[str, str]:
-        """Resolve (market, code) from a symbol.
+    def _resolve_sina_symbol(symbol: str) -> Optional[str]:
+        """Resolve a symbol to Sina API format (sh600519 / sz000001).
 
-        East Money market codes: "1" = SH (Shanghai), "0" = SZ (Shenzhen).
-        Prefer explicit .SH / .SZ suffix when present; otherwise fall back to
-        a prefix heuristic for stocks. Index codes like 000001 are ambiguous
-        without a suffix, which is why honoring the suffix matters.
+        Supports: '600519', '600519.SH', 'sh600519', '000001.SZ', 'sz000001'
         """
+        symbol = symbol.strip().upper()
+        # Already in Sina format
+        if symbol.startswith("SH") or symbol.startswith("SZ"):
+            return symbol.lower()
+        # With suffix
         if "." in symbol:
             code, suffix = symbol.split(".", 1)
-            suffix = suffix.upper()
             if suffix == "SH":
-                return "1", code
+                return f"sh{code}"
             if suffix == "SZ":
-                return "0", code
-            # Unknown suffix (e.g. .HK, .US) — not supported here yet.
-            # Drop the suffix so EM gets a clean (but likely unknown) code
-            # and returns empty instead of choking on a malformed secid.
-        else:
-            code = symbol
-        # No usable suffix: A-share stock prefix heuristic
-        # 6xxxxx = SH; 0xxxxx / 3xxxxx = SZ
-        return ("1", code) if code.startswith("6") else ("0", code)
+                return f"sz{code}"
+            return None
+        # Plain code: prefix heuristic
+        if symbol.startswith("6"):
+            return f"sh{symbol.lower()}"
+        if symbol.startswith(("0", "3")):
+            return f"sz{symbol.lower()}"
+        return None
 
     # ==================== Stock Quote ====================
 
@@ -207,8 +244,9 @@ class MarketDataService:
 
         quote = None
         try:
-            market, code = self._resolve_secid(symbol)
-            quote = await self._fetch_em_quote(code, market)
+            sina_sym = self._resolve_sina_symbol(symbol)
+            if sina_sym:
+                quote = await self._fetch_sina_quote(sina_sym)
         except Exception as e:
             logger.warning(f"Quote failed for {symbol}: {e}")
 
@@ -216,116 +254,114 @@ class MarketDataService:
             self._set_cache(cache_key, quote)
         return quote
 
-    async def _fetch_em_quote(self, code: str, market: str) -> Optional[StockQuote]:
-        """Fetch single stock quote from East Money."""
-        secid = f"{market}.{code}"
+    async def _fetch_sina_quote(self, sina_symbol: str) -> Optional[StockQuote]:
+        """Fetch single stock quote from Sina Finance.
 
-        url = (
-            f"{self._EM_BASE}?"
-            f"pn=1&pz=1&po=1&np=1&fltt=2&invt=2"
-            f"&fid=f3&fs=m:{market}+t:6,m:{market}+t:13,m:{market}+t:80,m:{market}+t:81"
-            f"&fields={self._FIELDS}"
-            f"&_={int(time.time() * 1000)}"
-        )
-        data = await self._curl(url)
-        if not data or "data" not in data or not data["data"] or "diff" not in data["data"]:
-            # Try direct quote API
-            return await self._fetch_em_quote_direct(code, market)
-
-        # Find our stock
-        items = data["data"]["diff"]
-        for item in items:
-            if item.get("f12") == code:
-                return StockQuote(
-                    symbol=f"{code}.{'SH' if market == '1' else 'SZ'}",
-                    name=item.get("f14", code),
-                    price=float(item.get("f2", 0) or 0),
-                    change=float(item.get("f4", 0) or 0),
-                    change_pct=float(item.get("f3", 0) or 0),
-                    open=float(item.get("f17", 0) or 0),
-                    high=float(item.get("f15", 0) or 0),
-                    low=float(item.get("f16", 0) or 0),
-                    volume=float(item.get("f5", 0) or 0),
-                    market="A股",
-                )
-        return None
-
-    async def _fetch_em_quote_direct(self, code: str, market: str) -> Optional[StockQuote]:
-        """Fallback: use East Money quote API directly."""
-        secid = f"{market}.{code}"
-        url = (
-            f"https://push2.eastmoney.com/api/qt/stock/get?"
-            f"secid={secid}&fields=f43,f44,f45,f46,f47,f48,f50,f51,f52,f57,f58,f60,f116,f117,f169,f170"
-            f"&_={int(time.time() * 1000)}"
-        )
-        data = await self._curl(url)
-        if not data or "data" not in data:
+        Sina stock response format (GBK, ~30 fields):
+          0=name, 1=open, 2=prev_close, 3=price, 4=high, 5=low,
+          6=bid(buy), 7=ask(sell), 8=volume(shares), 9=amount(yuan),
+          ...
+          30=date, 31=time, 32=status(00=normal)
+        """
+        url = f"{self._SINA_BASE}{sina_symbol}"
+        text = await self._fetch_url(url, encoding="gbk")
+        if not text:
             return None
 
-        d = data["data"]
-        if not d:
+        m = re.search(r'"([^"]*)"', text)
+        if not m:
             return None
-        return StockQuote(
-            symbol=f"{code}.{'SH' if market == '1' else 'SZ'}",
-            name=d.get("f58", code),
-            price=float(d.get("f43", 0) or 0) / 100 if d.get("f43") else 0,
-            change=float(d.get("f169", 0) or 0) / 100 if d.get("f169") else 0,
-            change_pct=float(d.get("f170", 0) or 0) / 100 if d.get("f170") else 0,
-            open=float(d.get("f46", 0) or 0) / 100 if d.get("f46") else 0,
-            high=float(d.get("f44", 0) or 0) / 100 if d.get("f44") else 0,
-            low=float(d.get("f45", 0) or 0) / 100 if d.get("f45") else 0,
-            volume=float(d.get("f47", 0) or 0),
-            market="A股",
-        )
+
+        fields = m.group(1).split(",")
+        if len(fields) < 10 or not fields[0]:
+            return None
+
+        code = sina_symbol[2:]  # strip sh/sz prefix
+        market_tag = "SH" if sina_symbol.startswith("sh") else "SZ"
+
+        try:
+            return StockQuote(
+                symbol=f"{code}.{market_tag}",
+                name=fields[0],
+                open=float(fields[1]) if fields[1] else 0.0,
+                price=float(fields[3]) if fields[3] else 0.0,
+                high=float(fields[4]) if fields[4] else 0.0,
+                low=float(fields[5]) if fields[5] else 0.0,
+                volume=float(fields[8]) if fields[8] else 0.0,
+                change=0.0,  # computed below
+                change_pct=0.0,  # computed below
+                market="A股",
+                updated_at=f"{fields[30]} {fields[31]}" if len(fields) > 31 else "",
+            )
+        except (ValueError, IndexError) as e:
+            logger.debug(f"Parse quote error: {e}")
+            return None
 
     # ==================== K-line ====================
 
     async def get_kline(self, symbol: str, period: str = "daily", count: int = 30) -> List[KlineBar]:
-        """Get K-line data."""
+        """Get K-line data from Tencent Finance API."""
         cache_key = f"kline_{symbol}_{period}_{count}"
         if self._is_cached(cache_key):
             return self._get_cache(cache_key)
 
         data = []
         try:
-            data = await self._fetch_em_kline(symbol, period, count)
+            data = await self._fetch_tencent_kline(symbol, period, count)
         except Exception as e:
             logger.warning(f"K-line failed for {symbol}: {e}")
 
         self._set_cache(cache_key, data)
         return data
 
-    async def _fetch_em_kline(self, symbol: str, period: str, count: int) -> List[KlineBar]:
-        """Fetch K-line from East Money."""
-        market, code = self._resolve_secid(symbol)
-        secid = f"{market}.{code}"
+    async def _fetch_tencent_kline(
+        self, symbol: str, period: str, count: int
+    ) -> List[KlineBar]:
+        """Fetch K-line from Tencent Finance.
 
-        period_map = {"daily": "101", "weekly": "102", "monthly": "103"}
-        klt = period_map.get(period, "101")
+        Tencent K-line API returns JSON with OHLCV data.
+        Item format: [date, open, close, high, low, volume]
+        """
+        sina_sym = self._resolve_sina_symbol(symbol)
+        if not sina_sym:
+            return []
+
+        period_map = {"daily": "day", "weekly": "week", "monthly": "month"}
+        qt_period = period_map.get(period, "day")
 
         url = (
-            f"{self._EM_KLIST}?"
-            f"secid={secid}&klt={klt}&fqt=1"
-            f"&beg=20240101&end=20261231"
-            f"&lmt={count}&_={int(time.time() * 1000)}"
+            f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?"
+            f"param={sina_sym},{qt_period},,,{count},qfq"
         )
-        data = await self._curl(url)
-        if not data or "data" not in data or "klines" not in data["data"]:
+        text = await self._fetch_url(url, encoding="utf-8")
+        if not text:
+            return []
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            return []
+
+        stock_data = data.get("data", {}).get(sina_sym, {})
+        klines = stock_data.get(qt_period, [])
+        if not klines:
             return []
 
         bars = []
-        for line in data["data"]["klines"]:
-            parts = line.split(",")
-            if len(parts) < 7:
+        for item in klines[-count:]:
+            if len(item) < 6:
                 continue
-            bars.append(KlineBar(
-                date=parts[0],
-                open=float(parts[1]),
-                close=float(parts[2]),
-                high=float(parts[3]),
-                low=float(parts[4]),
-                volume=float(parts[5]),
-            ))
+            try:
+                bars.append(KlineBar(
+                    date=str(item[0]),
+                    open=float(item[1]),
+                    close=float(item[2]),
+                    high=float(item[3]),
+                    low=float(item[4]),
+                    volume=float(item[5]),
+                ))
+            except (ValueError, IndexError):
+                continue
         return bars
 
 

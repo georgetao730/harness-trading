@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import { cn } from "@/lib/utils";
-import { Shield, AlertTriangle, Bell, User } from "lucide-react";
-import type { ExecutionMode } from "@/lib/api";
+import type { ExecutionMode } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { AlertTriangle, Bell, Shield, User } from 'lucide-react';
 
 const modes: { id: ExecutionMode; label: string; desc: string; color: string }[] = [
   {
-    id: "dry_run",
-    label: "演习模式",
-    desc: "AI 正常决策，不执行真实交易",
-    color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    id: 'dry_run',
+    label: '演习模式',
+    desc: 'AI 正常决策，不执行真实交易',
+    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   },
   {
-    id: "approval",
-    label: "审批模式",
-    desc: "交易需人工确认后执行",
-    color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    id: 'approval',
+    label: '审批模式',
+    desc: '交易需人工确认后执行',
+    color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   },
   {
-    id: "auto",
-    label: "自动模式",
-    desc: "安全参数内自动执行",
-    color: "bg-green-500/20 text-green-400 border-green-500/30",
+    id: 'auto',
+    label: '自动模式',
+    desc: '安全参数内自动执行',
+    color: 'bg-green-500/20 text-green-400 border-green-500/30',
   },
 ];
 
@@ -48,10 +48,10 @@ export function TopBar({ mode, onModeChange, circuitBroken, onResetCircuit }: To
               key={m.id}
               onClick={() => onModeChange(m.id)}
               className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                 mode === m.id
-                  ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm"
-                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+                  ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]',
               )}
             >
               {m.label}
@@ -60,10 +60,7 @@ export function TopBar({ mode, onModeChange, circuitBroken, onResetCircuit }: To
         </div>
         {/* 当前模式指示 */}
         <span
-          className={cn(
-            "px-2 py-0.5 rounded text-[10px] font-medium border",
-            currentMode.color
-          )}
+          className={cn('px-2 py-0.5 rounded text-[10px] font-medium border', currentMode.color)}
         >
           {currentMode.desc}
         </span>
@@ -84,8 +81,10 @@ export function TopBar({ mode, onModeChange, circuitBroken, onResetCircuit }: To
 
         {/* 风控状态 */}
         <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
-          <Shield className={cn("w-3.5 h-3.5", circuitBroken ? "text-red-400" : "text-green-400")} />
-          风控 {circuitBroken ? "已暂停" : "正常"}
+          <Shield
+            className={cn('w-3.5 h-3.5', circuitBroken ? 'text-red-400' : 'text-green-400')}
+          />
+          风控 {circuitBroken ? '已暂停' : '正常'}
         </div>
 
         {/* 通知 */}

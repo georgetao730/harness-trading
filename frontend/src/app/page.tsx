@@ -1,25 +1,26 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
-import { TopBar } from "@/components/dashboard/TopBar";
-import { AgentPanel } from "@/components/agent/AgentPanel";
-import { AgentChatPage } from "@/components/agent/AgentChatPage";
-import { MarketOverview } from "@/components/charts/MarketOverview";
-import { HarnessPanel } from "@/components/harness/HarnessPanel";
-import { WorkflowPage } from "@/components/workflow/WorkflowPage";
-import { PortfolioPage } from "@/components/portfolio/PortfolioPage";
-import { SafetyCenterPage } from "@/components/harness/SafetyCenterPage";
-import { KnowledgeBasePage } from "@/components/knowledge/KnowledgeBasePage";
-import { SettingsPage } from "@/components/settings/SettingsPage";
+import { AgentChatPage } from '@/components/agent/AgentChatPage';
+import { AgentPanel } from '@/components/agent/AgentPanel';
+import { ChannelsPage } from '@/components/harness/ChannelsPage';
+import { MarketOverview } from '@/components/charts/MarketOverview';
+import { Sidebar } from '@/components/dashboard/Sidebar';
+import { TopBar } from '@/components/dashboard/TopBar';
+import { HarnessPanel } from '@/components/harness/HarnessPanel';
+import { SafetyCenterPage } from '@/components/harness/SafetyCenterPage';
+import { KnowledgeBasePage } from '@/components/knowledge/KnowledgeBasePage';
+import { PortfolioPage } from '@/components/portfolio/PortfolioPage';
+import { SettingsPage } from '@/components/settings/SettingsPage';
+import { WorkflowPage } from '@/components/workflow/WorkflowPage';
 import {
   type ExecutionMode,
   getHarnessStatus,
+  resetCircuitBreaker,
   setAgentMode,
   setHarnessMode,
   triggerCircuitBreaker,
-  resetCircuitBreaker,
-} from "@/lib/api";
+} from '@/lib/api';
+import { useEffect, useState } from 'react';
 
 function DashboardView({
   mode,
@@ -56,12 +57,12 @@ function PageContainer({ children }: { children: React.ReactNode }) {
   return <div className="flex-1 overflow-hidden p-4">{children}</div>;
 }
 
-export { type ExecutionMode };
+export type { ExecutionMode };
 
 export default function Home() {
-  const [mode, setMode] = useState<ExecutionMode>("dry_run");
+  const [mode, setMode] = useState<ExecutionMode>('dry_run');
   const [circuitBroken, setCircuitBroken] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [apiConnected, setApiConnected] = useState(true);
 
   // Fetch initial harness status from backend
@@ -73,7 +74,7 @@ export default function Home() {
         setApiConnected(true);
       })
       .catch(() => {
-        console.warn("Backend not available, using local state");
+        console.warn('Backend not available, using local state');
         setApiConnected(false);
       });
   }, []);
@@ -94,7 +95,7 @@ export default function Home() {
     setCircuitBroken(true);
     if (apiConnected) {
       try {
-        await triggerCircuitBreaker("手动触发");
+        await triggerCircuitBreaker('手动触发');
       } catch {
         // fallback
       }
@@ -114,7 +115,7 @@ export default function Home() {
 
   const renderPage = () => {
     switch (activeTab) {
-      case "dashboard":
+      case 'dashboard':
         return (
           <DashboardView
             mode={mode}
@@ -123,37 +124,43 @@ export default function Home() {
             onResetCircuit={handleResetCircuit}
           />
         );
-      case "agent":
+      case 'agent':
         return (
           <PageContainer>
             <AgentChatPage />
           </PageContainer>
         );
-      case "workflows":
+      case 'workflows':
         return (
           <PageContainer>
             <WorkflowPage />
           </PageContainer>
         );
-      case "portfolio":
+      case 'channels':
+        return (
+          <PageContainer>
+            <ChannelsPage />
+          </PageContainer>
+        );
+      case 'portfolio':
         return (
           <PageContainer>
             <PortfolioPage />
           </PageContainer>
         );
-      case "harness":
+      case 'harness':
         return (
           <PageContainer>
             <SafetyCenterPage />
           </PageContainer>
         );
-      case "knowledge":
+      case 'knowledge':
         return (
           <PageContainer>
             <KnowledgeBasePage />
           </PageContainer>
         );
-      case "settings":
+      case 'settings':
         return (
           <PageContainer>
             <SettingsPage />

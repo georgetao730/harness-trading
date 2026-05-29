@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
+import { getHarnessStatus, getMarketIndices, getPortfolio } from '@/lib/api';
+import type { HarnessStatus, MarketIndex, PortfolioSummary } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import {
-  Bot,
-  Send,
-  Brain,
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
   Activity,
-  ShieldCheck,
+  BarChart3,
+  Bot,
+  Brain,
   RefreshCw,
-} from "lucide-react";
-import { getMarketIndices, getPortfolio, getHarnessStatus } from "@/lib/api";
-import type { MarketIndex, PortfolioSummary, HarnessStatus } from "@/lib/api";
+  Send,
+  ShieldCheck,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export function AgentPanel() {
   const [indices, setIndices] = useState<MarketIndex[]>([]);
@@ -49,11 +49,11 @@ export function AgentPanel() {
   const marketBias =
     indices.length > 0
       ? marketUp >= indices.length * 0.6
-        ? "偏多"
+        ? '偏多'
         : marketUp <= indices.length * 0.4
-          ? "偏空"
-          : "震荡"
-      : "未知";
+          ? '偏空'
+          : '震荡'
+      : '未知';
 
   return (
     <div className="h-full flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
@@ -66,7 +66,7 @@ export function AgentPanel() {
           <div>
             <h3 className="text-sm font-semibold">AI 交易助手</h3>
             <p className="text-[10px] text-[var(--color-text-muted)]">
-              {loading ? "加载中..." : `市场情绪: ${marketBias}`}
+              {loading ? '加载中...' : `市场情绪: ${marketBias}`}
             </p>
           </div>
         </div>
@@ -75,7 +75,9 @@ export function AgentPanel() {
           className="p-1.5 rounded hover:bg-[var(--color-surface-hover)] transition-colors"
           title="刷新"
         >
-          <RefreshCw className={cn("w-3.5 h-3.5 text-[var(--color-text-muted)]", loading && "animate-spin")} />
+          <RefreshCw
+            className={cn('w-3.5 h-3.5 text-[var(--color-text-muted)]', loading && 'animate-spin')}
+          />
         </button>
       </div>
 
@@ -84,7 +86,9 @@ export function AgentPanel() {
         {/* 指数概览 */}
         {indices.length > 0 && (
           <div className="space-y-1">
-            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider px-1">市场指数</p>
+            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider px-1">
+              市场指数
+            </p>
             <div className="space-y-0.5">
               {indices.map((idx) => (
                 <div
@@ -94,11 +98,15 @@ export function AgentPanel() {
                   <div className="flex items-center gap-2">
                     <TrendingUp
                       className={cn(
-                        "w-3.5 h-3.5",
-                        idx.change_pct >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+                        'w-3.5 h-3.5',
+                        idx.change_pct >= 0
+                          ? 'text-[var(--color-success)]'
+                          : 'text-[var(--color-danger)]',
                       )}
                     />
-                    <span className="text-xs font-medium text-[var(--color-text-primary)]">{idx.name}</span>
+                    <span className="text-xs font-medium text-[var(--color-text-primary)]">
+                      {idx.name}
+                    </span>
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-mono text-[var(--color-text-primary)] tabular-nums">
@@ -106,11 +114,13 @@ export function AgentPanel() {
                     </p>
                     <p
                       className={cn(
-                        "text-[10px] tabular-nums",
-                        idx.change_pct >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+                        'text-[10px] tabular-nums',
+                        idx.change_pct >= 0
+                          ? 'text-[var(--color-success)]'
+                          : 'text-[var(--color-danger)]',
                       )}
                     >
-                      {idx.change_pct >= 0 ? "+" : ""}
+                      {idx.change_pct >= 0 ? '+' : ''}
                       {idx.change_pct.toFixed(2)}%
                     </p>
                   </div>
@@ -123,7 +133,9 @@ export function AgentPanel() {
         {/* 账户速览 */}
         {summary && (
           <div className="space-y-1">
-            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider px-1">模拟账户</p>
+            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider px-1">
+              模拟账户
+            </p>
             <div className="grid grid-cols-2 gap-1.5">
               <div className="p-2 rounded-lg bg-[var(--color-surface-hover)]/50">
                 <p className="text-[10px] text-[var(--color-text-muted)]">总资产</p>
@@ -135,11 +147,13 @@ export function AgentPanel() {
                 <p className="text-[10px] text-[var(--color-text-muted)]">总盈亏</p>
                 <p
                   className={cn(
-                    "text-sm font-mono font-bold",
-                    summary.total_pnl >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+                    'text-sm font-mono font-bold',
+                    summary.total_pnl >= 0
+                      ? 'text-[var(--color-success)]'
+                      : 'text-[var(--color-danger)]',
                   )}
                 >
-                  {summary.total_pnl >= 0 ? "+" : ""}¥{summary.total_pnl.toLocaleString()}
+                  {summary.total_pnl >= 0 ? '+' : ''}¥{summary.total_pnl.toLocaleString()}
                 </p>
               </div>
               <div className="p-2 rounded-lg bg-[var(--color-surface-hover)]/50">
@@ -161,7 +175,9 @@ export function AgentPanel() {
         {/* 安全状态 */}
         {harnessStatus && (
           <div className="space-y-1">
-            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider px-1">安全护栏</p>
+            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider px-1">
+              安全护栏
+            </p>
             <div className="p-2.5 rounded-lg bg-[var(--color-surface-hover)]/50 space-y-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
@@ -170,36 +186,36 @@ export function AgentPanel() {
                 </div>
                 <span
                   className={cn(
-                    "px-1.5 py-0.5 rounded text-[10px] font-medium",
-                    harnessStatus.mode === "dry_run"
-                      ? "bg-yellow-500/10 text-yellow-400"
-                      : harnessStatus.mode === "auto"
-                        ? "bg-green-500/10 text-green-400"
-                        : harnessStatus.mode === "manual"
-                          ? "bg-blue-500/10 text-blue-400"
-                          : "bg-red-500/10 text-red-400"
+                    'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                    harnessStatus.mode === 'dry_run'
+                      ? 'bg-yellow-500/10 text-yellow-400'
+                      : harnessStatus.mode === 'auto'
+                        ? 'bg-green-500/10 text-green-400'
+                        : harnessStatus.mode === 'manual'
+                          ? 'bg-blue-500/10 text-blue-400'
+                          : 'bg-red-500/10 text-red-400',
                   )}
                 >
-                  {harnessStatus.mode === "dry_run"
-                    ? "演练"
-                    : harnessStatus.mode === "auto"
-                      ? "自动"
-                      : harnessStatus.mode === "manual"
-                        ? "手动"
-                        : "熔断"}
+                  {harnessStatus.mode === 'dry_run'
+                    ? '演练'
+                    : harnessStatus.mode === 'auto'
+                      ? '自动'
+                      : harnessStatus.mode === 'manual'
+                        ? '手动'
+                        : '熔断'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-[var(--color-text-secondary)]">熔断器</span>
                 <span
                   className={cn(
-                    "text-[10px] font-medium",
+                    'text-[10px] font-medium',
                     harnessStatus.circuit_breaker_triggered
-                      ? "text-[var(--color-danger)]"
-                      : "text-[var(--color-success)]"
+                      ? 'text-[var(--color-danger)]'
+                      : 'text-[var(--color-success)]',
                   )}
                 >
-                  {harnessStatus.circuit_breaker_triggered ? "已触发" : "正常"}
+                  {harnessStatus.circuit_breaker_triggered ? '已触发' : '正常'}
                 </span>
               </div>
             </div>

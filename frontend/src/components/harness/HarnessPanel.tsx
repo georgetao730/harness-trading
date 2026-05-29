@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { cn } from "@/lib/utils";
+import type { ExecutionMode } from '@/lib/api';
+import { getHarnessConfig, resetCircuitBreaker, triggerCircuitBreaker } from '@/lib/api';
+import type { HarnessValidatorRule } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import {
+  AlertTriangle,
+  Ban,
+  CheckCircle2,
+  Clock,
+  Gauge,
+  RotateCw,
   Shield,
   ShieldAlert,
   ShieldCheck,
-  AlertTriangle,
-  Ban,
-  Clock,
-  CheckCircle2,
   XCircle,
-  RotateCw,
   Zap,
-  Gauge,
-} from "lucide-react";
-import type { ExecutionMode } from "@/lib/api";
-import { getHarnessConfig, triggerCircuitBreaker, resetCircuitBreaker } from "@/lib/api";
-import type { HarnessValidatorRule } from "@/lib/api";
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface HarnessPanelProps {
   mode: ExecutionMode;
@@ -58,52 +58,55 @@ export function HarnessPanel({
         {/* 模式指示器 */}
         <div
           className={cn(
-            "rounded-lg p-3 border mb-3",
-            mode === "dry_run" && "border-blue-500/30 bg-blue-500/5",
-            mode === "approval" && "border-yellow-500/30 bg-yellow-500/5",
-            mode === "auto" && "border-green-500/30 bg-green-500/5"
+            'rounded-lg p-3 border mb-3',
+            mode === 'dry_run' && 'border-blue-500/30 bg-blue-500/5',
+            mode === 'approval' && 'border-yellow-500/30 bg-yellow-500/5',
+            mode === 'auto' && 'border-green-500/30 bg-green-500/5',
           )}
         >
           <div className="flex items-center gap-2 mb-1">
-            {mode === "dry_run" && <ShieldCheck className="w-4 h-4 text-blue-400" />}
-            {mode === "approval" && <Clock className="w-4 h-4 text-yellow-400" />}
-            {mode === "auto" && <Zap className="w-4 h-4 text-green-400" />}
+            {mode === 'dry_run' && <ShieldCheck className="w-4 h-4 text-blue-400" />}
+            {mode === 'approval' && <Clock className="w-4 h-4 text-yellow-400" />}
+            {mode === 'auto' && <Zap className="w-4 h-4 text-green-400" />}
             <span
               className={cn(
-                "text-xs font-semibold",
-                mode === "dry_run" && "text-blue-400",
-                mode === "approval" && "text-yellow-400",
-                mode === "auto" && "text-green-400"
+                'text-xs font-semibold',
+                mode === 'dry_run' && 'text-blue-400',
+                mode === 'approval' && 'text-yellow-400',
+                mode === 'auto' && 'text-green-400',
               )}
             >
-              {mode === "dry_run" && "演习模式"}
-              {mode === "approval" && "审批模式"}
-              {mode === "auto" && "自动模式"}
+              {mode === 'dry_run' && '演习模式'}
+              {mode === 'approval' && '审批模式'}
+              {mode === 'auto' && '自动模式'}
             </span>
           </div>
           <p className="text-[10px] text-[var(--color-text-muted)]">
-            {mode === "dry_run" && "所有交易指令仅记录，不实际执行"}
-            {mode === "approval" && "交易需经人工审批后才会发送到券商"}
-            {mode === "auto" && "安全参数内自动执行，超出阈值自动降级为审批"}
+            {mode === 'dry_run' && '所有交易指令仅记录，不实际执行'}
+            {mode === 'approval' && '交易需经人工审批后才会发送到券商'}
+            {mode === 'auto' && '安全参数内自动执行，超出阈值自动降级为审批'}
           </p>
         </div>
 
         {/* 熔断状态 */}
         <div
           className={cn(
-            "rounded-lg p-3 border",
+            'rounded-lg p-3 border',
             circuitBroken
-              ? "border-red-500/30 bg-red-500/5"
-              : "border-[var(--color-border)] bg-[var(--color-surface-hover)]/30"
+              ? 'border-red-500/30 bg-red-500/5'
+              : 'border-[var(--color-border)] bg-[var(--color-surface-hover)]/30',
           )}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle
-                className={cn("w-4 h-4", circuitBroken ? "text-red-400" : "text-[var(--color-text-muted)]")}
+                className={cn(
+                  'w-4 h-4',
+                  circuitBroken ? 'text-red-400' : 'text-[var(--color-text-muted)]',
+                )}
               />
               <span className="text-xs font-medium">
-                {circuitBroken ? "熔断已触发" : "熔断器正常"}
+                {circuitBroken ? '熔断已触发' : '熔断器正常'}
               </span>
             </div>
             {circuitBroken ? (
@@ -133,7 +136,9 @@ export function HarnessPanel({
           <Gauge className="w-4 h-4 text-[var(--color-primary)]" />
           <h3 className="text-sm font-semibold">校验链</h3>
           <span className="text-[10px] text-[var(--color-success)] ml-auto">
-            {validatorRules.length > 0 ? `${validatorRules.filter((r) => r.enabled).length}项启用` : "全部通过"}
+            {validatorRules.length > 0
+              ? `${validatorRules.filter((r) => r.enabled).length}项启用`
+              : '全部通过'}
           </span>
         </div>
         <div className="space-y-1.5">
@@ -145,7 +150,9 @@ export function HarnessPanel({
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-success)] flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-[var(--color-text-primary)]">{rule.name}</p>
+                  <p className="text-[11px] font-medium text-[var(--color-text-primary)]">
+                    {rule.name}
+                  </p>
                   <p className="text-[10px] text-[var(--color-text-muted)] truncate">
                     {rule.description} · 阈值: {rule.value}
                   </p>
@@ -156,11 +163,15 @@ export function HarnessPanel({
             <>
               <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-surface-hover)]/30">
                 <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-success)] flex-shrink-0" />
-                <p className="text-[11px] font-medium text-[var(--color-text-primary)]">价格合理性</p>
+                <p className="text-[11px] font-medium text-[var(--color-text-primary)]">
+                  价格合理性
+                </p>
               </div>
               <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-surface-hover)]/30">
                 <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-success)] flex-shrink-0" />
-                <p className="text-[11px] font-medium text-[var(--color-text-primary)]">数量合理性</p>
+                <p className="text-[11px] font-medium text-[var(--color-text-primary)]">
+                  数量合理性
+                </p>
               </div>
               <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--color-surface-hover)]/30">
                 <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-success)] flex-shrink-0" />
@@ -223,7 +234,9 @@ function ParamRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-1">
       <span className="text-[11px] text-[var(--color-text-secondary)]">{label}</span>
-      <span className="text-[11px] font-mono font-medium text-[var(--color-text-primary)]">{value}</span>
+      <span className="text-[11px] font-mono font-medium text-[var(--color-text-primary)]">
+        {value}
+      </span>
     </div>
   );
 }

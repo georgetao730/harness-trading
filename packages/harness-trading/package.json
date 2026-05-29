@@ -9,11 +9,7 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "bin",
-    "dist",
-    "README.md"
-  ],
+  "files": ["bin", "dist", "README.md"],
   "scripts": {
     "build": "tsc -b",
     "test": "echo \"(no tests yet)\""
@@ -27,12 +23,5 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "keywords": [
-    "quant",
-    "trading",
-    "agentic",
-    "ai",
-    "skills",
-    "workflow"
-  ]
+  "keywords": ["quant", "trading", "agentic", "ai", "skills", "workflow"]
 }

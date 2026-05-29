@@ -1,0 +1,37 @@
+# Claude Code Adapter — Harness Workflow Launcher
+#
+# 将此文件放到项目的 `.claude/settings.json` 中或放到
+# 各个项目根的 `.claude/tools/` 目录下。
+#
+# 用法: Claude Code 会自动注册为可用工具，Agent 可以
+# 通过调用 harness_workflow_run 来触发 Harness 中的工作流。
+
+name: harness_workflow_run
+description: >
+  在 Harness Trading 系统中运行工作流。
+  工作流包括: strategy-spec(策略设计), backtest(回测),
+  paper-trade(模拟交易), live-trade(实盘交易)。
+  使用此工具来执行交易策略的完整生命周期管理。
+parameters:
+  - name: workflow
+    type: string
+    description: 工作流名称 (strategy-spec|backtest|paper-trade|live-trade)
+    required: true
+  - name: inputs
+    type: object
+    description: |
+      工作流输入参数，JSON 格式。
+      例如: {"idea":"金叉买入","symbols":"000001.SZ","duration_days":30}
+    required: true
+command: |
+  cd /path/to/harness-trading
+  python packages/agentic-hooks/src/harness_launcher.py "$workflow" --inputs '$inputs'
+
+# 注册为 list 工具
+---
+name: harness_workflows_list
+description: 列出 Harness Trading 系统中所有可用的工作流
+parameters: []
+command: |
+  cd /path/to/harness-trading
+  python packages/agentic-hooks/src/harness_launcher.py --list

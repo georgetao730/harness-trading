@@ -1,24 +1,26 @@
-"use client";
+'use client';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard,
-  Bot,
-  Shield,
   BarChart3,
-  Settings,
-  Workflow,
   BookOpen,
-} from "lucide-react";
+  Bot,
+  LayoutDashboard,
+  Radio,
+  Settings,
+  Shield,
+  Workflow,
+} from 'lucide-react';
 
 const navItems = [
-  { id: "dashboard", label: "仪表盘", icon: LayoutDashboard },
-  { id: "agent", label: "AI 对话", icon: Bot },
-  { id: "workflows", label: "工作流", icon: Workflow },
-  { id: "portfolio", label: "持仓管理", icon: BarChart3 },
-  { id: "harness", label: "安全中心", icon: Shield },
-  { id: "knowledge", label: "知识库", icon: BookOpen },
-  { id: "settings", label: "系统设置", icon: Settings },
+  { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard },
+  { id: 'agent', label: 'AI 对话', icon: Bot },
+  { id: 'workflows', label: '工作流', icon: Workflow },
+  { id: 'channels', label: '通道管理', icon: Radio },
+  { id: 'portfolio', label: '持仓管理', icon: BarChart3 },
+  { id: 'harness', label: '安全中心', icon: Shield },
+  { id: 'knowledge', label: '知识库', icon: BookOpen },
+  { id: 'settings', label: '系统设置', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -44,10 +46,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all",
+              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
               activeTab === item.id
-                ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
-                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
+                ? 'bg-[var(--color-primary)]/15 text-[var(--color-primary)]'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]',
             )}
           >
             <item.icon className="w-4 h-4" />

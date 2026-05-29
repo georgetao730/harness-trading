@@ -1,0 +1,49 @@
+# Skills/technical-analysis Eval Suite
+# L1 cases: 字面断言 handler 输出的数据格式和内容
+# L2 cases: LLM-judge 语义质量（需要 LLM 运行时）
+
+name: technical-analysis
+description: 评测 technical-analysis 技能的指标计算正确性和输出格式
+
+cases:
+  # ── L1: 数据结构断言 ──
+  - id: ta-l1-ema
+    description: EMA 指标计算后输出包含 ema_values 数组
+    level: L1
+    skill: technical-analysis
+    inputs:
+      symbol: "600519.SH"
+      indicators: ema
+      period: 20
+    expected_contains: "ema"
+
+  - id: ta-l1-rsi
+    description: RSI 指标计算后输出包含 rsi_values
+    level: L1
+    skill: technical-analysis
+    inputs:
+      symbol: "600519.SH"
+      indicators: rsi
+      period: 14
+    expected_contains: "rsi"
+
+  - id: ta-l1-macd
+    description: MACD 指标输出包含 diff, dea, hist
+    level: L1
+    skill: technical-analysis
+    inputs:
+      symbol: "600519.SH"
+      indicators: macd
+    expected_contains: "macd"
+
+  # ── L2: 语义质量断言 ──
+  - id: ta-l2-analysis
+    description: 多指标综合分析包含趋势判断和文字说明
+    level: L2
+    skill: technical-analysis
+    inputs:
+      symbol: "600519.SH"
+      indicators: combined
+    rubric: >
+      输出应包含至少两个技术指标的数值数据，并有对当前趋势的文字描述。
+      文字描述不少于20个中文字符。

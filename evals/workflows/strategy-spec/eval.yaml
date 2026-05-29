@@ -1,0 +1,15 @@
+# Workflows/strategy-spec Eval Suite
+# L3 cases: 端到端跑 workflow，断言工作流阶段完成
+
+name: strategy-spec
+description: 评测 strategy-spec 工作流的端到端执行
+
+cases:
+  - id: wf-l3-basic
+    description: 基础策略设计工作流 — 3 个阶段全部完成
+    level: L3
+    workflow: strategy-spec
+    inputs:
+      idea: 均线金叉买入信号策略
+      symbols: "000001.SZ,600519.SH"
+      risk_budget_pct: 5

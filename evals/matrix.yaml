@@ -1,0 +1,13 @@
+# Eval Matrix — cross-model evaluation configuration
+# 
+# 用法: harness-trading eval run --suite all --model all
+# → 会对每个 suite × 每个 model 跑一遍，输出对比报告
+
+models:
+  - deepseek-v3
+  - claude-3-5-sonnet
+  - gpt-4o
+
+suites:
+  - skills/technical-analysis/eval.yaml
+  - workflows/strategy-spec/eval.yaml

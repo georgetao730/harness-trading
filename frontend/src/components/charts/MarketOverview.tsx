@@ -1,31 +1,27 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { cn } from "@/lib/utils";
+import { getKline, getMarketIndices, getPortfolio } from '@/lib/api';
+import type { KlineBar, MarketIndex, PortfolioPosition, PortfolioSummary } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  BarChart3,
-  PieChart,
   Activity,
+  BarChart3,
+  DollarSign,
+  PieChart,
   RefreshCw,
-} from "lucide-react";
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  getMarketIndices,
-  getKline,
-  getPortfolio,
-} from "@/lib/api";
-import type { MarketIndex, KlineBar, PortfolioPosition, PortfolioSummary } from "@/lib/api";
+} from 'recharts';
 
 export function MarketOverview() {
   const [indices, setIndices] = useState<MarketIndex[]>([]);
@@ -33,13 +29,13 @@ export function MarketOverview() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [positions, setPositions] = useState<PortfolioPosition[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedIndex, setSelectedIndex] = useState("上证指数");
+  const [selectedIndex, setSelectedIndex] = useState('上证指数');
 
   const fetchData = useCallback(async () => {
     try {
       const [indicesRes, klineRes, portfolioRes] = await Promise.all([
         getMarketIndices(),
-        getKline("000001.SH", "daily", 30),
+        getKline('000001.SH', 'daily', 30),
         getPortfolio(),
       ]);
       setIndices(indicesRes.indices);
@@ -64,7 +60,7 @@ export function MarketOverview() {
     const idx = indices.find((i) => i.name === name);
     if (idx) {
       try {
-        const kline = await getKline(idx.code, "daily", 30);
+        const kline = await getKline(idx.code, 'daily', 30);
         setKlineData(kline.data);
       } catch {}
     }
@@ -95,11 +91,11 @@ export function MarketOverview() {
           value={`¥${totalPnl.toLocaleString()}`}
           change={totalPnlPct}
           icon={TrendingUp}
-          color={totalPnl >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}
+          color={totalPnl >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}
         />
         <StatCard
           label="持仓数量"
-          value={summary ? summary.position_count.toString() : "0"}
+          value={summary ? summary.position_count.toString() : '0'}
           subtext="只标的"
           icon={PieChart}
           color="text-purple-400"
@@ -107,7 +103,7 @@ export function MarketOverview() {
         <StatCard
           label="风控状态"
           value="正常"
-          subtext={loading ? "加载中..." : "实时监控"}
+          subtext={loading ? '加载中...' : '实时监控'}
           icon={Activity}
           color="text-[var(--color-success)]"
         />
@@ -121,21 +117,23 @@ export function MarketOverview() {
               key={idx.code}
               onClick={() => switchIndex(idx.name)}
               className={cn(
-                "flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all",
+                'flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all',
                 selectedIndex === idx.name
-                  ? "border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5"
-                  : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]/20"
+                  ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]/20',
               )}
             >
               <span className="font-medium">{idx.name}</span>
               <span className="tabular-nums">{idx.price.toFixed(0)}</span>
               <span
                 className={cn(
-                  "text-[10px] tabular-nums",
-                  idx.change_pct >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+                  'text-[10px] tabular-nums',
+                  idx.change_pct >= 0
+                    ? 'text-[var(--color-success)]'
+                    : 'text-[var(--color-danger)]',
                 )}
               >
-                {idx.change_pct >= 0 ? "+" : ""}
+                {idx.change_pct >= 0 ? '+' : ''}
                 {idx.change_pct.toFixed(2)}%
               </span>
             </button>
@@ -165,22 +163,38 @@ export function MarketOverview() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3d" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: '#64748b' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#64748b' }}
+                axisLine={false}
+                tickLine={false}
+                domain={['auto', 'auto']}
+              />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#14141f",
-                  border: "1px solid #2a2a3d",
-                  borderRadius: "8px",
-                  fontSize: "12px",
+                  backgroundColor: '#14141f',
+                  border: '1px solid #2a2a3d',
+                  borderRadius: '8px',
+                  fontSize: '12px',
                 }}
               />
-              <Area type="monotone" dataKey="price" stroke="#6366f1" strokeWidth={1.5} fill="url(#priceGradient)" />
+              <Area
+                type="monotone"
+                dataKey="price"
+                stroke="#6366f1"
+                strokeWidth={1.5}
+                fill="url(#priceGradient)"
+              />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
           <div className="h-[200px] flex items-center justify-center text-xs text-[var(--color-text-muted)]">
-            {loading ? "加载中..." : "暂无数据"}
+            {loading ? '加载中...' : '暂无数据'}
           </div>
         )}
       </div>
@@ -200,7 +214,9 @@ export function MarketOverview() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-[var(--color-text-primary)]">{p.symbol}</p>
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {p.symbol}
+                    </p>
                   </div>
                   <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
                     {p.shares} 股 · 成本 ¥{p.avg_cost.toFixed(2)}
@@ -218,13 +234,13 @@ export function MarketOverview() {
                     )}
                     <span
                       className={cn(
-                        "text-[10px] font-medium",
+                        'text-[10px] font-medium',
                         p.unrealized_pnl_pct >= 0
-                          ? "text-[var(--color-success)]"
-                          : "text-[var(--color-danger)]"
+                          ? 'text-[var(--color-success)]'
+                          : 'text-[var(--color-danger)]',
                       )}
                     >
-                      {p.unrealized_pnl_pct >= 0 ? "+" : ""}
+                      {p.unrealized_pnl_pct >= 0 ? '+' : ''}
                       {p.unrealized_pnl_pct.toFixed(2)}%
                     </span>
                   </div>
@@ -234,7 +250,7 @@ export function MarketOverview() {
           </div>
         ) : (
           <div className="p-6 text-center text-xs text-[var(--color-text-muted)]">
-            {loading ? "加载中..." : "暂无持仓，通过 AI 对话下达交易指令"}
+            {loading ? '加载中...' : '暂无持仓，通过 AI 对话下达交易指令'}
           </div>
         )}
       </div>
@@ -260,17 +276,19 @@ function StatCard({
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">{label}</span>
-        <Icon className={cn("w-4 h-4", color)} />
+        <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+          {label}
+        </span>
+        <Icon className={cn('w-4 h-4', color)} />
       </div>
       <p className="text-lg font-bold text-[var(--color-text-primary)]">{value}</p>
       {change !== undefined && (
         <p
           className={`text-[10px] font-medium mt-1 ${
-            change >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+            change >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'
           }`}
         >
-          {change >= 0 ? "+" : ""}
+          {change >= 0 ? '+' : ''}
           {change.toFixed(2)}%
         </p>
       )}

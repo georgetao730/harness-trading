@@ -1,0 +1,30 @@
+# Cursor Adapter — Harness Workflow Launcher
+#
+# 将以下 tool 定义添加到 Cursor 的 `.cursorrules` 文件中，
+# 或放到项目根的 `.cursor/tools/` 目录。
+#
+# 用法: Cursor Agent 会注册 harness_workflow_run 为可用工具，
+# 可调用 Harness 中的工作流执行。
+
+tools:
+  - function: harness_workflow_run
+    description: >
+      Run a workflow in the Harness Trading system.
+      Available: strategy-spec, backtest, paper-trade, live-trade.
+    args:
+      - name: workflow
+        type: string
+        description: Workflow name
+        required: true
+      - name: inputs
+        type: json-object
+        description: Workflow inputs as JSON
+        required: true
+    run: |
+      python packages/agentic-hooks/src/harness_launcher.py "$workflow" --inputs '$inputs'
+
+  - function: harness_workflows_list
+    description: List all Harness workflows
+    args: []
+    run: |
+      python packages/agentic-hooks/src/harness_launcher.py --list
