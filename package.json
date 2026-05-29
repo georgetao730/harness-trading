@@ -1,0 +1,29 @@
+{
+  "name": "harness-trading-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Workspace root for harness-trading (Node thin shell + Python thick core)",
+  "license": "MIT",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/**\" build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -r --filter \"./packages/**\" exec tsc --noEmit",
+    "test": "pnpm -r --filter \"./packages/**\" test",
+    "py:install": "uv sync --project backend",
+    "py:lint": "uv run --project backend ruff check backend",
+    "py:test": "uv run --project backend pytest backend",
+    "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm py:lint && pnpm py:test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^20.16.0",
+    "typescript": "^5.6.3"
+  }
+}

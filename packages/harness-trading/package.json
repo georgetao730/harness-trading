@@ -1,0 +1,38 @@
+{
+  "name": "harness-trading",
+  "version": "0.0.1",
+  "description": "Agentic quant assistant — thin Node shell over Python core. Install with `npm i -g harness-trading`.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "harness-trading": "./bin/harness-trading.mjs"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "echo \"(no tests yet)\""
+  },
+  "dependencies": {
+    "@harness-trading/cli": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "quant",
+    "trading",
+    "agentic",
+    "ai",
+    "skills",
+    "workflow"
+  ]
+}

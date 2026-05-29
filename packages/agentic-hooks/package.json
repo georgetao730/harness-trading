@@ -1,0 +1,27 @@
+{
+  "name": "@harness-trading/agentic-hooks",
+  "version": "0.0.1",
+  "description": "Generic agentic hooks runtime: 6 events × multiple agent adapters (Claude / Codex / Cursor).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "echo \"(no tests yet)\""
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "agent",
+    "hooks",
+    "claude-code",
+    "codex",
+    "cursor"
+  ]
+}

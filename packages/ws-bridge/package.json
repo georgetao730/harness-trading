@@ -1,0 +1,20 @@
+{
+  "name": "@harness-trading/ws-bridge",
+  "version": "0.0.1",
+  "description": "WebSocket client for the Node ↔ Python bridge protocol (see docs/node-python-bridge.md).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "echo \"(no tests yet)\""
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

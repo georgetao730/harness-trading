@@ -1,0 +1,15 @@
+{
+  "name": "@harness-trading/web",
+  "version": "0.0.1",
+  "description": "Browser UI for harness-trading. Skeleton only in Sprint 0; real code lands in Sprint 4.",
+  "license": "MIT",
+  "private": true,
+  "files": ["README.md"],
+  "scripts": {
+    "build": "echo \"@harness-trading/web is a skeleton — see README.md\"",
+    "test": "echo \"(no tests yet)\""
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

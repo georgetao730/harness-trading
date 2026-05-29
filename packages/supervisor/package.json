@@ -1,0 +1,20 @@
+{
+  "name": "@harness-trading/supervisor",
+  "version": "0.0.1",
+  "description": "Spawns and supervises the Python Gateway uvicorn process.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "echo \"(no tests yet)\""
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

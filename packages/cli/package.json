@@ -1,0 +1,32 @@
+{
+  "name": "@harness-trading/cli",
+  "version": "0.0.1",
+  "description": "harness-trading CLI: onboard / doctor / gateway / skill / workflow commands.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "echo \"(no tests yet)\""
+  },
+  "dependencies": {
+    "@harness-trading/supervisor": "workspace:*",
+    "@harness-trading/ws-bridge": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
