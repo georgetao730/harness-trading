@@ -14,8 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Copy configs
-COPY ../config /app/config
+# config/ is mounted at runtime via docker-compose (it lives outside this
+# build context). For standalone runs without compose, mount it yourself:
+#   docker run -v $(pwd)/../config:/app/config ...
 
 EXPOSE 8000
 

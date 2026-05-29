@@ -1,181 +1,269 @@
 # Harness Trading
+<p align="center">
+  <strong>A self-hostable AI quant assistant.</strong><br/>
+  <em>Runs on your machine. Talks to your feeds and brokers through pluggable channels. Wraps every order in a Safety Harness.</em>
+</p>
 
-**AI 驱动的量化交易助手 — 带安全护栏（Safety Harness）的智能交易系统**
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/python-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12+">
+  <img src="https://img.shields.io/badge/node-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node 18+">
+  <img src="https://img.shields.io/badge/docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker ready">
+  <img src="https://img.shields.io/badge/status-experimental-orange?style=for-the-badge" alt="Status: experimental">
+</p>
 
-Harness Trading 是一个全栈 AI 交易平台，核心理念是让 AI 辅助交易决策，同时通过多层安全护栏确保每一笔交易都在可控范围内执行。支持多 LLM 供应商（Anthropic Claude、DeepSeek、OpenAI GPT、Ollama 等），提供实时行情接入、模拟交易引擎和完整的前端面板。
+**Harness Trading** is *not* another closed-box AI trading bot. It is the **quant version of [openclaw](https://github.com/openclaw/openclaw)** — a personal AI assistant you install on your own machine, with the methodology backbone of [harness-env](https://github.com/) (Hooks · Skills · Workflows · Agents · Knowledge · Evals) applied to trading.
 
----
+You bring keys; it brings primitives. **Channels** (feeds · alerts · surfaces · brokers) are first-class plug-ins. **Skills**, **Workflows** and **Agents** define how the assistant thinks and acts. A non-bypassable **Safety Harness** sits in front of every broker. Everything local-first — your data and decisions never leave your machine unless a channel you authorise asks them to.
 
-## 核心特性
-
-### 安全护栏（Safety Harness）
-
-交易安全是 Harness Trading 的最核心设计理念。所有交易订单必须通过多层校验链：
-
-| 校验层 | 说明 |
-|--------|------|
-| **价格校验** | 订单价格偏离市价超过阈值（默认 3%）时自动拦截 |
-| **数量校验** | 单笔数量合理性检查，防止超额下单 |
-| **订单类型校验** | 禁止市价单，仅允许限价单，避免滑点风险 |
-| **交易时间校验** | 非交易时段自动拦截所有订单 |
-| **频率限制** | 限制短时间内的下单次数（默认 5 笔/30 分钟） |
-| **风险控制** | 单日亏损上限、持仓集中度、单笔金额上限、最大杠杆 |
-| **熔断机制** | 触及风控阈值后自动熔断，需手动重置 |
-
-### 三种执行模式
-
-| 模式 | 说明 |
-|------|------|
-| **演习模式（Dry Run）** | AI 正常决策但订单仅记录不执行，适合回测和验证 |
-| **审批模式（Approval）** | 所有订单排队等待人工审批后才执行 |
-| **自动模式（Auto）** | 在安全范围内自动执行，高风险订单自动升级为审批模式 |
-
-### 多模型智能路由
-
-支持主流 LLM 供应商，按任务类型自动路由：
-
-- **Anthropic Claude** — 主推理模型
-- **DeepSeek** — 辅助模型（默认交易决策模型）
-- **OpenAI GPT-4o** — 多模态分析
-- **Moonshot** — 长上下文处理
-- **Ollama 本地模型** — 私密数据本地推理
-
-### 实时行情数据
-
-- **A股** — 通过东方财富 API 获取实时行情、K 线数据
-- **港股** — 支持恒生指数及个股行情
-- **美股** — 支持标普 500 等主要指数
-- 带缓存机制和 Mock 数据优雅降级
-
-### 模拟交易引擎
-
-内置 Paper Trading 引擎，支持：
-- 初始资金 100 万虚拟交易
-- 持仓管理、成本均摊
-- 盈亏计算（已实现/未实现）
-- 完整订单历史和交易记录
+> Trading involves risk. Harness Trading ships in **paper-trading-only** mode by default. Live broker adapters are on the roadmap and intentionally absent today.
 
 ---
 
-## 技术栈
+## Why Harness Trading
 
-### 后端
-
-| 组件 | 技术 |
-|------|------|
-| 框架 | FastAPI (Python 3.12+) |
-| 异步 | asyncio / uvicorn |
-| LLM | OpenAI SDK / Anthropic SDK / Google GenAI |
-| 数据 | SQLAlchemy + asyncpg / Redis |
-| 任务队列 | Celery + APScheduler |
-| 日志 | Loguru |
-| 配置 | Pydantic Settings + YAML |
-
-### 前端
-
-| 组件 | 技术 |
-|------|------|
-| 框架 | Next.js 16 + React 19 |
-| 样式 | Tailwind CSS 4 |
-| 图表 | Recharts |
-| 图标 | Lucide React |
-| 语言 | TypeScript |
-
-### 部署
-
-| 方式 | 说明 |
-|------|------|
-| Docker Compose | 一键启动前后端服务 |
-| 后端 | Python 3.12-slim 容器 |
-| 前端 | Node.js 容器 |
+|                              | Plain quant bot         | Closed AI trader        | **Harness Trading**            |
+|------------------------------|-------------------------|-------------------------|--------------------------------|
+| Install in 60s               | varies                  | SaaS only               | **`npm i -g harness-trading` *(Phase 2)*** |
+| Local-first gateway          | rare                    | cloud-only              | **`ws://127.0.0.1` on your machine** |
+| Customizable workflows       | hard-coded              | hidden                  | **YAML / Python, all yours**   |
+| Pluggable channels           | n/a                     | n/a                     | **feeds · alerts · surfaces · brokers** |
+| Pluggable skills             | rare                    | proprietary             | **drop-in modules**            |
+| Multi-LLM routing            | single vendor           | single vendor           | **per-task router**            |
+| Safety harness               | manual checks           | opaque                  | **non-bypassable validator chain**|
+| Paper-first execution        | optional                | rarely first-class      | **default, hard-gated**        |
 
 ---
 
-## 项目结构
+## Highlights
+
+- **Install in 60 seconds** *(Phase 2)* — `npm i -g harness-trading && harness-trading onboard`. A Node shell sets up Python core, Local-first Gateway, daemon, dashboard, and channel credentials in one wizard.
+- **Channels are first-class** — Feeds (Eastmoney / Tushare / Binance) · Alerts (DingTalk / Telegram / Email) · Surfaces (CLI / Web / iOS / Voice) · Brokers (Paper today; live as opt-in plugins, always behind the harness).
+- **Pluggable Skills** — folder-shaped modules with `SKILL.md` (frontmatter: `when_to_use` / `when_to_skip` / `risk_class`) + `handler.py` + `schema.json`. Two ship today; directory-style protocol lands in Phase 2.
+- **Composable Workflows** *(Phase 2)* — declarative pipelines for `strategy → backtest → paper → live`, with explicit user-confirm gates between stages.
+- **Multi-LLM Router** — Anthropic / OpenAI / DeepSeek / Moonshot / Qwen / GLM / Google / local Ollama, with per-task routing in [`config/providers.yaml`](config/providers.yaml). Reasoning channel for hard decisions.
+- **Safety Harness (non-bypassable)** — declarative validator chain + risk controller + circuit breaker + token-gated broker submit, configured in [`config/harness.yaml`](config/harness.yaml).
+- **Three Execution Modes** — `dry_run` (log-only), `approval` (human-in-the-loop), `auto` (within risk envelope).
+- **Cross-IDE hooks** *(Phase 2, separate npm package [`agentic-hooks`](docs/tech-spec-phase2.md#8-agentic-hooks-通用包独立-npm-发布))* — the same 6-event hook stack works in Claude Code / Codex / Cursor / Qoder; reusable by any Agentic project.
+
+---
+
+## Quick start
+
+> **Phase 2 (planned)**: `npm i -g harness-trading && harness-trading onboard` — Node shell auto-provisions Python 3.12 + uv + backend, then wires LLM key / feeds / alerts / paper broker. See [docs/tech-spec-phase2.md](docs/tech-spec-phase2.md).
+>
+> **Phase 1 (today, what's actually shipped)**: Docker Compose.
+
+Runtime: **Docker 24+** (recommended) or **Python 3.12+** & **Node 18+** for local dev.
+
+```bash
+git clone <this-repo> harness-trading && cd harness-trading
+cp .env.example .env                 # then put DEEPSEEK_API_KEY=sk-... in .env
+docker compose up -d                 # backend :8000 + frontend :3000
+open http://localhost:3000
+```
+
+Full guide: [QUICKSTART.md](QUICKSTART.md).
+
+---
+
+## How it works
+
+```
+   User · CLI · Web Dashboard · iOS Node · Voice Wake
+                       │
+                       ▼
+   ┌───────────────────────────────────────┐
+   │ Node Shell  (Phase 2)                 │
+   │   onboard · supervisor · ws-bridge    │
+   │   agentic-hooks · Next.js host        │
+   └───────────────────┬───────────────────┘
+                       │ ws://127.0.0.1 (local-first)
+                       ▼
+   ┌───────────────────────────────────────┐
+   │ Python Core  (today + Phase 2)        │
+   │   Agent · Skills · Workflows*         │
+   │   Knowledge* · Multi-LLM Router       │
+   └───────────────────┬───────────────────┘
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+      Feeds         Alerts         Brokers
+   (Eastmoney    (DingTalk      (Paper · Live*)
+    Tushare …)    Telegram …)
+                       │
+                       ▼
+        ┌─────────────────────────────┐
+        │  Safety Harness  (always)   │  ← config/harness.yaml
+        │  price · qty · type · time  │
+        │  freq · risk · breaker      │
+        └─────────────────────────────┘
+```
+
+`*` Workflows / Knowledge / Live brokers land in Phase 2; Node Shell is the openclaw-shaped delivery layer that turns the whole stack into a one-line install.
+
+---
+
+## Architecture
+
+| Layer       | Stack |
+|-------------|-------|
+| **Node Shell** *(Phase 2)* | npm pkg `harness-trading` · CLI · supervisor · ws-bridge · `agentic-hooks` · Next.js host |
+| Backend     | FastAPI · Python 3.12 · asyncio · Loguru · Pydantic Settings + YAML |
+| LLM         | OpenAI SDK · Anthropic SDK · Google GenAI · DeepSeek / Moonshot / Qwen / GLM (OpenAI-compatible) · Ollama |
+| Market      | Eastmoney HTTP API (A-shares) via `curl` subprocess; 30s in-memory cache; mock fallback |
+| Frontend    | Next.js 16 · React 19 · Tailwind CSS 4 · Recharts · Lucide · TypeScript |
+| Persistence | SQLAlchemy + SQLite (default) / Postgres (production) — *Phase 2* |
+| Deploy      | npm global *(Phase 2)* · Docker Compose *(today)* |
+
+> Persistence (SQLAlchemy / Postgres) and task queues are intentionally **process-local** today; both land in Phase 2.
+
+---
+
+## Extension points
+
+Four first-class extension surfaces — three that ship Phase 2's directory-style protocol, one (Channels) that's already partially live.
+
+### Built-in skills today
+
+| Skill | File | Purpose |
+|-------|------|---------|
+| `market_data` | [`backend/app/agent/skills/market_data.py`](backend/app/agent/skills/market_data.py) | Real-time quotes, indices, K-line |
+| `technical`   | [`backend/app/agent/skills/technical.py`](backend/app/agent/skills/technical.py)     | MA / MACD / RSI / Bollinger indicators |
+
+Each skill subclasses [`BaseSkill`](backend/app/agent/skills/base.py) and is auto-registered into the agent's tool list at startup.
+
+### Phase 2: directory-style skill / workflow / agent / channel protocol
+
+```
+skills/<your_skill>/
+├── SKILL.md          # frontmatter: when_to_use / when_to_skip / risk_class
+├── handler.py        # @skill-decorated async run()
+└── schema.json       # input/output JSON schema
+
+workflows/<your_workflow>.md           # stages + user-confirm gates
+agents/<your_agent>.md                 # role + allowed_skills + llm_routing
+backend/app/channels/<type>/<name>/    # feed / alert / broker plugin
+```
+
+Channels (feeds · alerts · surfaces · brokers) are first-class — onboard wizard wires them up; the Safety Harness sits between the agent and any broker channel.
+
+Detailed protocol: [docs/tech-spec-phase2.md](docs/tech-spec-phase2.md).
+
+---
+
+## Multi-LLM Routing
+
+Per-task routing lives in [`config/providers.yaml`](config/providers.yaml). Switch the model behind `trading_decision` / `market_analysis` / `news_summary` / `chat` independently. Disable any provider by setting `enabled: false`. Local Ollama is a first-class citizen.
+
+```yaml
+routing:
+  trading_decision: secondary    # DeepSeek by default
+  market_analysis:  vision       # OpenAI GPT-4o for charts
+  news_summary:     local        # Ollama for sensitive corpora
+  chat:             primary      # Claude for the dashboard chat
+```
+
+---
+
+## Safety Harness
+
+All orders flow through a declarative validator chain before execution. Configured in [`config/harness.yaml`](config/harness.yaml).
+
+| Check                | Default behaviour |
+|----------------------|-------------------|
+| Price deviation      | reject if > 3% from mark |
+| Quantity sanity      | reject oversized lots |
+| Order type           | limit-only; market orders blocked |
+| Trading hours        | block outside session |
+| Frequency limit      | 5 orders / 30 min |
+| Risk controller      | daily loss cap · concentration · per-order cap · max leverage |
+| Circuit breaker      | trips on threshold breach; manual reset required |
+
+The harness runs in every mode — `dry_run` still records the full validation trace, so you can audit why an order *would* have passed or failed.
+
+---
+
+## API at a glance
+
+### Agent — `/api/agent`
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/chat` | Send a message to the agent |
+| GET  | `/mode` | Read current execution mode |
+| POST | `/mode` | Switch mode (`dry_run` / `approval` / `auto`) |
+| GET  | `/skills` | List registered skills |
+| WS   | `/ws` | Streaming channel (backend ready, frontend Phase 2) |
+
+### Trading — `/api/trading`
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/order` | Submit an order through the harness |
+| GET  | `/portfolio` | Paper portfolio snapshot |
+| GET  | `/orders` | Order history |
+| GET  | `/market/indices` | Major index quotes |
+| GET  | `/market/quote` | Single-symbol quote |
+| GET  | `/market/kline` | K-line data |
+
+### Harness — `/api/harness`
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET  | `/status` | Harness health + counters |
+| GET  | `/config` | Live harness config |
+| POST | `/mode` | Switch execution mode |
+| POST | `/circuit-breaker/trigger` | Manually trip the breaker |
+| POST | `/circuit-breaker/reset`   | Reset after a trip |
+
+Interactive docs: `http://localhost:8000/docs`.
+
+---
+
+## Roadmap
+
+**Phase 1 — *current*** · pluggable skills · safety harness · paper trading · multi-LLM routing · web dashboard
+
+**Phase 2 — assistant** · `npm i -g harness-trading` global package · onboard wizard · local-first Gateway · `agentic-hooks` standalone npm package · directory-style skills with `SKILL.md` · 4 workflows (`strategy-spec / backtest / paper-trade / live-trade`) · 5 agent roles · channels first-class (feeds · alerts · surfaces · brokers) · persistence (SQLAlchemy + SQLite/Postgres) · L1/L2/L3 eval harness · knowledge layer · macOS menu-bar app *(optional)*
+
+**Phase 3 — production** · live broker adapters · multi-strategy orchestration · portfolio-level risk · observability (metrics + traces) · multi-user / RBAC · audit ledger
+
+Tech Spec for Phase 2: [docs/tech-spec-phase2.md](docs/tech-spec-phase2.md).
+
+---
+
+## Project structure
+
+Today (Phase 1):
 
 ```
 harness-trading/
-├── backend/                    # Python 后端
-│   ├── app/
-│   │   ├── agent/              # AI Agent 技能系统
-│   │   │   ├── skills/         # 可插拔技能模块（行情、技术分析）
-│   │   │   └── memory/         # Agent 记忆系统
-│   │   ├── api/                # API 路由层
-│   │   │   ├── agent.py        # Agent 对话 & WebSocket
-│   │   │   ├── trading.py      # 交易 & 行情接口
-│   │   │   └── harness.py      # 安全护栏管理接口
-│   │   ├── core/               # 核心配置 & 事件总线
-│   │   ├── execution/          # 交易执行层
-│   │   │   ├── paper_trading.py # 模拟交易引擎
-│   │   │   └── brokers/        # 真实券商接口（预留）
-│   │   ├── harness/            # 安全护栏核心
-│   │   │   ├── engine.py       # 校验链 / 风险控制 / 熔断器
-│   │   │   └── pipeline.py     # 护栏流水线编排
-│   │   ├── llm/                # LLM 管理层
-│   │   │   ├── manager.py      # 多模型路由 & 配置加载
-│   │   │   ├── base.py         # 抽象接口
-│   │   │   └── providers/      # 各厂商实现
-│   │   ├── services/           # 业务服务层
-│   │   │   └── market_data.py  # 行情数据服务
-│   │   └── main.py             # FastAPI 入口
-│   ├── Dockerfile
-│   └── requirements.txt
-├── frontend/                   # Next.js 前端
-│   └── src/
-│       ├── app/                # 页面入口
-│       ├── components/         # UI 组件
-│       │   ├── agent/          # Agent 对话面板
-│       │   ├── charts/         # 行情图表
-│       │   ├── dashboard/      # 侧边栏 & 顶栏
-│       │   ├── harness/        # 安全中心面板
-│       │   ├── portfolio/      # 投资组合页面
-│       │   └── workflow/       # 工作流页面
-│       └── lib/                # API 客户端
-├── config/                     # 全局配置文件
-│   ├── harness.yaml            # 安全护栏规则
-│   └── providers.yaml          # LLM 供应商配置
+├── backend/                       # FastAPI + agent runtime
+│   └── app/
+│       ├── agent/skills/          # pluggable skills (extension point)
+│       ├── api/                   # /api/agent · /api/trading · /api/harness
+│       ├── core/                  # config + event bus
+│       ├── execution/             # paper_trading.py
+│       ├── harness/               # validator chain · risk · circuit breaker
+│       ├── llm/                   # multi-provider router
+│       └── services/              # market_data
+├── frontend/                      # Next.js 16 dashboard
+├── config/
+│   ├── harness.yaml               # safety rules
+│   └── providers.yaml             # LLM routing
 ├── docker-compose.yml
-├── .env.example
-└── .gitignore
+└── .env.example
 ```
 
----
-
-## API 概览
-
-### Agent API (`/api/agent`)
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/chat` | 向 AI Agent 发送消息 |
-| GET | `/mode` | 获取当前执行模式 |
-| POST | `/mode` | 切换执行模式 |
-| GET | `/skills` | 列出所有可用技能 |
-| WS | `/ws` | WebSocket 实时通信 |
-
-### Trading API (`/api/trading`)
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/order` | 提交交易订单（经过安全护栏） |
-| GET | `/portfolio` | 获取模拟持仓组合 |
-| GET | `/orders` | 获取历史订单 |
-| GET | `/market/indices` | 获取主要市场指数 |
-| GET | `/market/quote` | 获取个股实时行情 |
-| GET | `/market/kline` | 获取 K 线数据 |
-
-### Harness API (`/api/harness`)
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/status` | 获取护栏状态 |
-| GET | `/config` | 获取完整护栏配置 |
-| POST | `/mode` | 切换执行模式 |
-| POST | `/circuit-breaker/trigger` | 手动触发熔断 |
-| POST | `/circuit-breaker/reset` | 重置熔断器 |
+Phase 2 introduces a Node shell (`packages/{cli,supervisor,ws-bridge,agentic-hooks,web}/`) alongside the Python core, plus root-level `skills/ workflows/ agents/ knowledge/ hooks/` directories — see [docs/tech-spec-phase2.md §4](docs/tech-spec-phase2.md#4-目录布局phase-2-落地形态).
 
 ---
 
-## 许可证
+## Disclaimer
 
-本项目仅供学习和研究使用。交易有风险，入市需谨慎。
+This project is for **research and educational use only**. It does not constitute investment advice. Trading involves risk; you can lose money. Do **not** wire real capital through this system without thoroughly understanding every layer, and never bypass the safety harness in production. The maintainers accept no liability for losses incurred by use of this software.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

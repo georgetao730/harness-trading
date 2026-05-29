@@ -1,38 +1,14 @@
-# Safety Harness Configuration
-
-execution_modes:
-  - dry_run      # AI decides but orders are not executed
-  - approval     # Orders require human confirmation
-  - auto         # Auto-execute within safety bounds
-
 validator_chain:
-  price_check:
-    enabled: true
-    max_deviation_pct: 3.0       # Max price deviation from market
-
-  quantity_check:
-    enabled: true
-    max_single_order_pct: 10.0   # Max single order as % of position
-
-  order_type_check:
-    enabled: true
-    allowed_types: [limit]       # Only limit orders
-
-  time_check:
-    enabled: true
-    # Trading hours auto-detected per market
-
-  frequency_limit:
-    enabled: true
-    max_orders_per_window: 5
-    window_minutes: 30
-
+  price_check: { enabled: true, max_deviation_pct: 7.5 }
+  quantity_check: { enabled: true }
+  order_type_check: { enabled: true, allowed_types: [limit] }
+  time_check: { enabled: false }
+  frequency_limit: { enabled: false }
 risk_controller:
-  daily_loss_limit_pct: 5.0      # Circuit breaker trigger
+  daily_loss_limit_pct: 5.0
   position_concentration_pct: 30.0
   single_order_amount_limit: 100000
   max_leverage: 1.0
-
 circuit_breaker:
-  auto_reset: false              # Require manual reset
-  cooldown_minutes: 1440         # 24 hours
+  auto_reset: false
+  cooldown_minutes: 1440

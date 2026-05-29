@@ -32,6 +32,10 @@ class OrderRequest(BaseModel):
     reason: str = ""
 
 
+class ModeRequest(BaseModel):
+    mode: str  # dry_run | approval | auto
+
+
 class OrderResponse(BaseModel):
     approved: bool
     mode: str
@@ -87,9 +91,9 @@ async def get_mode():
 
 
 @router.post("/mode")
-async def set_mode(mode: str):
+async def set_mode(req: ModeRequest):
     """Set execution mode: dry_run, approval, auto."""
-    harness_pipeline.set_mode(ExecutionMode(mode))
+    harness_pipeline.set_mode(ExecutionMode(req.mode))
     return {"mode": harness_pipeline.mode.value}
 
 

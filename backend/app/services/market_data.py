@@ -170,6 +170,33 @@ class MarketDataService:
         logger.info(f"Fetched {len(results)} EM indices")
         return results
 
+    # ==================== Symbol resolution ====================
+
+    @staticmethod
+    def _resolve_secid(symbol: str) -> tuple[str, str]:
+        """Resolve (market, code) from a symbol.
+
+        East Money market codes: "1" = SH (Shanghai), "0" = SZ (Shenzhen).
+        Prefer explicit .SH / .SZ suffix when present; otherwise fall back to
+        a prefix heuristic for stocks. Index codes like 000001 are ambiguous
+        without a suffix, which is why honoring the suffix matters.
+        """
+        if "." in symbol:
+            code, suffix = symbol.split(".", 1)
+            suffix = suffix.upper()
+            if suffix == "SH":
+                return "1", code
+            if suffix == "SZ":
+                return "0", code
+            # Unknown suffix (e.g. .HK, .US) — not supported here yet.
+            # Drop the suffix so EM gets a clean (but likely unknown) code
+            # and returns empty instead of choking on a malformed secid.
+        else:
+            code = symbol
+        # No usable suffix: A-share stock prefix heuristic
+        # 6xxxxx = SH; 0xxxxx / 3xxxxx = SZ
+        return ("1", code) if code.startswith("6") else ("0", code)
+
     # ==================== Stock Quote ====================
 
     async def get_quote(self, symbol: str) -> Optional[StockQuote]:
@@ -180,8 +207,8 @@ class MarketDataService:
 
         quote = None
         try:
-            code = symbol.split(".")[0] if "." in symbol else symbol
-            quote = await self._fetch_em_quote(code)
+            market, code = self._resolve_secid(symbol)
+            quote = await self._fetch_em_quote(code, market)
         except Exception as e:
             logger.warning(f"Quote failed for {symbol}: {e}")
 
@@ -189,10 +216,8 @@ class MarketDataService:
             self._set_cache(cache_key, quote)
         return quote
 
-    async def _fetch_em_quote(self, code: str) -> Optional[StockQuote]:
+    async def _fetch_em_quote(self, code: str, market: str) -> Optional[StockQuote]:
         """Fetch single stock quote from East Money."""
-        # Determine market: 6xxxxx = SH, 0xxxxx/3xxxxx = SZ
-        market = "1" if code.startswith("6") else "0"
         secid = f"{market}.{code}"
 
         url = (
@@ -272,8 +297,7 @@ class MarketDataService:
 
     async def _fetch_em_kline(self, symbol: str, period: str, count: int) -> List[KlineBar]:
         """Fetch K-line from East Money."""
-        code = symbol.split(".")[0] if "." in symbol else symbol
-        market = "1" if code.startswith("6") else "0"
+        market, code = self._resolve_secid(symbol)
         secid = f"{market}.{code}"
 
         period_map = {"daily": "101", "weekly": "102", "monthly": "103"}

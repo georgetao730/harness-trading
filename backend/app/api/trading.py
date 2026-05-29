@@ -23,8 +23,19 @@ async def place_order(data: dict):
         reason=data.get("reason", ""),
     )
 
+    # Pull latest market price so the price-deviation check has something to
+    # compare against. Failure to fetch is treated as "no reference price"
+    # (the price check will simply pass) rather than blocking the order.
+    market_data = None
+    try:
+        quote = await market_service.get_quote(intent.symbol)
+        if quote and quote.price > 0:
+            market_data = {"price": quote.price}
+    except Exception as e:
+        logger.warning(f"Quote lookup failed for {intent.symbol}: {e}")
+
     # Run through harness
-    approval = await harness_pipeline.process_order(intent)
+    approval = await harness_pipeline.process_order(intent, market_data=market_data)
 
     if approval.final_action == "execute":
         # Auto-execute via paper trading

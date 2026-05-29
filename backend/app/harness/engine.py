@@ -1,9 +1,11 @@
 """Safety Harness - Validator Chain, Risk Controller, Circuit Breaker"""
 
 import time
+from collections import deque
 from dataclasses import dataclass, field
+from datetime import datetime, time as dtime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional, Tuple
 from loguru import logger
 
 
@@ -57,6 +59,8 @@ class ValidatorChain:
 
     def __init__(self, config: dict = None):
         self.config = config or {}
+        # (timestamp, symbol) of recently submitted orders for frequency limit
+        self._recent_orders: Deque[Tuple[float, str]] = deque()
         self._checks = [
             self._check_price,
             self._check_quantity,
@@ -109,29 +113,74 @@ class ValidatorChain:
         if not cfg.get("enabled", True):
             return ValidationResult("order_type_check", ValidationStatus.PASS, "Disabled")
 
-        if intent.order_type == "market" and "limit" in cfg.get("allowed_types", ["limit"]):
+        allowed = cfg.get("allowed_types", ["limit"])
+        if intent.order_type not in allowed:
             return ValidationResult(
                 "order_type_check", ValidationStatus.REJECT,
-                "市价单被禁止，仅允许限价单"
+                f"订单类型 {intent.order_type} 不在允许列表 {allowed}"
             )
 
         return ValidationResult("order_type_check", ValidationStatus.PASS, f"订单类型 {intent.order_type} 允许")
+
+    # A-share trading sessions (local time, ignoring exchange holidays)
+    _A_SHARE_SESSIONS = [
+        (dtime(9, 30), dtime(11, 30)),
+        (dtime(13, 0), dtime(15, 0)),
+    ]
 
     async def _check_trading_time(self, intent: OrderIntent, market_data: dict = None) -> ValidationResult:
         cfg = self.config.get("time_check", {})
         if not cfg.get("enabled", True):
             return ValidationResult("time_check", ValidationStatus.PASS, "Disabled")
 
-        # Simple mock: assume always in trading hours for now
-        return ValidationResult("time_check", ValidationStatus.PASS, "在交易时段内")
+        now = datetime.now()
+        # Weekend
+        if now.weekday() >= 5:
+            return ValidationResult(
+                "time_check", ValidationStatus.REJECT,
+                f"非交易日（周{['一','二','三','四','五','六','日'][now.weekday()]}）"
+            )
+
+        # A-share sessions; other markets are not implemented yet, fall back to A-share window
+        current = now.time()
+        for start, end in self._A_SHARE_SESSIONS:
+            if start <= current <= end:
+                return ValidationResult(
+                    "time_check", ValidationStatus.PASS,
+                    f"在交易时段内（{current.strftime('%H:%M')}）"
+                )
+
+        return ValidationResult(
+            "time_check", ValidationStatus.REJECT,
+            f"非交易时段（{current.strftime('%H:%M')}），A股交易时间 9:30-11:30 / 13:00-15:00"
+        )
 
     async def _check_frequency(self, intent: OrderIntent, market_data: dict = None) -> ValidationResult:
         cfg = self.config.get("frequency_limit", {})
         if not cfg.get("enabled", True):
             return ValidationResult("frequency_limit", ValidationStatus.PASS, "Disabled")
 
-        # Mock: always pass for now (real impl tracks recent orders)
-        return ValidationResult("frequency_limit", ValidationStatus.PASS, "频率正常")
+        max_orders = int(cfg.get("max_orders_per_window", 5))
+        window_seconds = int(cfg.get("window_minutes", 30)) * 60
+        now = time.time()
+        cutoff = now - window_seconds
+
+        # Evict expired entries
+        while self._recent_orders and self._recent_orders[0][0] < cutoff:
+            self._recent_orders.popleft()
+
+        if len(self._recent_orders) >= max_orders:
+            return ValidationResult(
+                "frequency_limit", ValidationStatus.REJECT,
+                f"已达频率上限：{window_seconds // 60} 分钟内已有 {len(self._recent_orders)} 笔（上限 {max_orders}）"
+            )
+
+        # Record this order's submission for future checks
+        self._recent_orders.append((now, intent.symbol))
+        return ValidationResult(
+            "frequency_limit", ValidationStatus.PASS,
+            f"频率正常（窗口内 {len(self._recent_orders)}/{max_orders}）"
+        )
 
 
 class RiskController:
@@ -142,7 +191,16 @@ class RiskController:
         self._daily_pnl = 0.0
         self._daily_trades = 0
 
-    async def check(self, intent: OrderIntent, portfolio_value: float = 100000) -> List[str]:
+    async def check(
+        self,
+        intent: OrderIntent,
+        portfolio_value: float = 100000,
+        positions: Optional[Dict[str, float]] = None,
+    ) -> List[str]:
+        """Run risk checks.
+
+        positions: {symbol: market_value} of current holdings, used for concentration check.
+        """
         warnings = []
         cfg = self.config
 
@@ -155,7 +213,18 @@ class RiskController:
         max_amount = cfg.get("single_order_amount_limit", 100000)
         order_amount = intent.price * intent.quantity
         if order_amount > max_amount:
-            warnings.append(f"单笔金额 {order_amount} 超过上限 {max_amount}")
+            warnings.append(f"单笔金额 {order_amount:.0f} 超过上限 {max_amount}")
+
+        # Position concentration (only meaningful for buy orders)
+        concentration_pct = cfg.get("position_concentration_pct", 0)
+        if concentration_pct and intent.action == "buy" and portfolio_value > 0:
+            existing = (positions or {}).get(intent.symbol, 0.0)
+            projected = existing + order_amount
+            projected_pct = projected / portfolio_value * 100
+            if projected_pct > concentration_pct:
+                warnings.append(
+                    f"持仓集中度 {projected_pct:.1f}% 超过上限 {concentration_pct}%（{intent.symbol}）"
+                )
 
         return warnings
 

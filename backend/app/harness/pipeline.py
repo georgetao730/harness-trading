@@ -1,6 +1,9 @@
 """Harness Pipeline - Orchestrates validation + risk + circuit breaker"""
 
+from pathlib import Path
 from typing import Optional
+
+import yaml
 from loguru import logger
 
 from .engine import (
@@ -15,6 +18,20 @@ from .engine import (
 from ..core.events import EventType, event_bus
 
 
+def _load_harness_config(path: str = "config/harness.yaml") -> dict:
+    p = Path(path)
+    if not p.exists():
+        p = Path(__file__).parent.parent.parent.parent / path
+    if not p.exists():
+        logger.warning(f"Harness config not found at {path}, using defaults")
+        return {}
+    try:
+        return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    except Exception as e:
+        logger.warning(f"Failed to parse harness config: {e}")
+        return {}
+
+
 class HarnessPipeline:
     """Complete safety pipeline that all orders must pass through."""
 
@@ -23,8 +40,18 @@ class HarnessPipeline:
         validator_config: dict = None,
         risk_config: dict = None,
         circuit_config: dict = None,
+        config_path: str = "config/harness.yaml",
     ):
+        # Auto-load from yaml when callers don't pass explicit configs
+        if validator_config is None or risk_config is None or circuit_config is None:
+            full = _load_harness_config(config_path)
+            validator_config = validator_config or full.get("validator_chain", {})
+            risk_config = risk_config or full.get("risk_controller", {})
+            circuit_config = circuit_config or full.get("circuit_breaker", {})
+
         self.mode = ExecutionMode.DRY_RUN
+        self.validator_config = validator_config
+        self.risk_config = risk_config
         self.validator = ValidatorChain(validator_config)
         self.risk_controller = RiskController(risk_config)
         self.circuit_breaker = CircuitBreaker(circuit_config)
@@ -32,7 +59,7 @@ class HarnessPipeline:
     async def process_order(
         self,
         intent: OrderIntent,
-        portfolio_value: float = 100000,
+        portfolio_value: Optional[float] = None,
         market_data: dict = None,
     ) -> OrderApproval:
         """Process an order through the entire safety pipeline."""
@@ -72,8 +99,11 @@ class HarnessPipeline:
                 final_action="reject",
             )
 
-        # Step 2: Risk Controller
-        risk_warnings = await self.risk_controller.check(intent, portfolio_value)
+        # Step 2: Risk Controller - pull live portfolio snapshot
+        portfolio_value, positions = self._snapshot_portfolio(portfolio_value)
+        risk_warnings = await self.risk_controller.check(
+            intent, portfolio_value=portfolio_value, positions=positions
+        )
 
         # Step 3: Mode-based routing
         if self.mode == ExecutionMode.DRY_RUN:
@@ -106,6 +136,20 @@ class HarnessPipeline:
             risk_warnings=risk_warnings,
             final_action=final_action,
         )
+
+    @staticmethod
+    def _snapshot_portfolio(override_value: Optional[float]):
+        """Get current portfolio value + per-symbol market values from paper engine."""
+        try:
+            # Local import avoids circular dep at module load
+            from ..execution.paper_trading import paper_engine
+            summary = paper_engine.get_portfolio_summary()
+            value = override_value if override_value is not None else summary.get("total_value", 100000)
+            positions = {sym: p.market_value for sym, p in paper_engine.positions.items()}
+            return value, positions
+        except Exception as e:
+            logger.debug(f"Portfolio snapshot unavailable: {e}")
+            return (override_value if override_value is not None else 100000), {}
 
     def set_mode(self, mode: ExecutionMode):
         self.mode = mode

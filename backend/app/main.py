@@ -1,5 +1,6 @@
 """Harness Trading - FastAPI Application"""
 
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,13 +31,28 @@ app = FastAPI(
 )
 
 # CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Browser spec rejects allow_origins=["*"] combined with allow_credentials=True,
+# so we offer two modes:
+#   - default (no CORS_ORIGINS env): open access, no credentials
+#   - explicit CORS_ORIGINS="https://a.com,https://b.com": those origins, with credentials
+_cors_env = os.environ.get("CORS_ORIGINS", "").strip()
+if _cors_env:
+    _origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Register API routes
 from .api import agent, trading, harness  # noqa
