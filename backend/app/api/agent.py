@@ -1,5 +1,9 @@
 """Agent API Routes - Chat with AI, manage thinking process"""
 
+import re
+from pathlib import Path
+import yaml
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from loguru import logger
@@ -557,9 +561,6 @@ async def get_channel_types():
 @router.get("/channels/config")
 async def get_channels_config():
     """Return current channels.yaml configuration."""
-    from pathlib import Path
-    import yaml
-
     config_path = Path(__file__).resolve().parent.parent.parent.parent / "config" / "channels.yaml"
     if not config_path.exists():
         return {"config": {}}

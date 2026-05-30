@@ -269,6 +269,21 @@ async def get_market_indices():
     }
 
 
+@router.post("/seed")
+async def seed_demo_data():
+    """Seed demo trading data for screenshots (bypasses harness)."""
+    paper_engine.closed_trades = [
+        {"symbol": "600519.SH", "name": "贵州茅台", "action": "sell", "price": 1325.0, "quantity": 100, "pnl": 7500.0, "date": "2026-05-25"},
+        {"symbol": "000858.SZ", "name": "五粮液", "action": "sell", "price": 162.5, "quantity": 500, "pnl": 2250.0, "date": "2026-05-26"},
+        {"symbol": "601318.SH", "name": "中国平安", "action": "sell", "price": 53.8, "quantity": 1000, "pnl": 1800.0, "date": "2026-05-28"},
+        {"symbol": "300750.SZ", "name": "宁德时代", "action": "sell", "price": 205.5, "quantity": 300, "pnl": -1350.0, "date": "2026-05-27"},
+    ]
+    paper_engine.cash = 1010200.0
+    paper_engine.initial_cash = 1000000.0
+    logger.info("Demo data seeded: 4 closed trades, cash=1010200")
+    return {"status": "seeded", "trades": len(paper_engine.closed_trades), "total_pnl": 10200.0}
+
+
 @router.get("/market/quote")
 async def get_stock_quote(symbol: str = Query(..., description="股票代码，如 600519.SH / 00700.HK / AAPL")):
     """Get real-time stock quote."""
