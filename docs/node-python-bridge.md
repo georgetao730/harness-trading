@@ -1,6 +1,6 @@
 # Node ↔ Python Bridge Protocol (v0.1)
 
-> Status: **Draft** · Owner: harness-trading core · Depends on: [tech-spec-phase2.md](./tech-spec-phase2.md), [ADR-0005](./adr/phase2-decisions.md#adr-0005--auth-token-策略)
+> Status: **Draft** · Owner: harness-trading core · Depends on: [ADR-0005](./adr/phase2-decisions.md#adr-0005--auth-token-策略)
 
 Node 薄壳（packages/ws-bridge）与 Python 厚核（backend/app/gateway）之间的通信契约。**唯一传输通道**：本地 WebSocket（loopback `127.0.0.1`，禁止暴露公网）。所有 stdout 调试日志走另外的 sidechannel，本协议只跑结构化业务帧。
 

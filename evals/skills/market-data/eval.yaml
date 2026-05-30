@@ -1,0 +1,41 @@
+# Market Data Skill Eval Suite
+name: market-data
+description: 验证市场数据技能的 API 数据返回格式
+
+cases:
+  - id: md-l1-indices-structure
+    description: 指数列表包含核心字段
+    level: L1
+    skill: market_data
+    inputs:
+      data_type: indices
+    expected_contains: "上证指数"
+
+  - id: md-l1-quote-format
+    description: 个股报价含必需字段
+    level: L1
+    skill: market_data
+    inputs:
+      symbol: "000001.SH"
+      data_type: quote
+    expected_contains: "price"
+    regex_match: "symbol|price|volume"
+
+  - id: md-l1-kline-count
+    description: K线数据返回指定数量
+    level: L1
+    skill: market_data
+    inputs:
+      symbol: "000001.SH"
+      data_type: kline
+      period: daily
+    expected_contains: "close"
+
+  - id: md-l1-bad-symbol
+    description: 无效代码返回错误
+    level: L1
+    skill: market_data
+    inputs:
+      symbol: "INVALID_CODE_XYZ"
+      data_type: quote
+    expected_contains: "error|false"

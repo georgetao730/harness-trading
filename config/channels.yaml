@@ -1,18 +1,16 @@
-# Channels Configuration
-# Each channel type (feed/alert/broker) supports multiple named instances.
-# Set enabled: false to disable a channel instance without deleting config.
-
-feeds:
-  eastmoney:
-    enabled: true
-    # poll_interval: 5.0  # seconds between snapshots
-
 alerts:
   dingtalk:
     enabled: false
-    # webhook_url: ""  # DingTalk robot webhook URL (set in .env)
-
+  feishu:
+    enabled: false
+  wecom:
+    enabled: false
 brokers:
+  eastmoney:
+    enabled: false
   paper:
     enabled: true
     initial_cash: 1000000.0
+feeds:
+  eastmoney:
+    enabled: true

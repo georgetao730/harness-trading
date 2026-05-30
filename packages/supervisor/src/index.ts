@@ -16,7 +16,7 @@ const HARNESS_HOME = process.env.HARNESS_TRADING_HOME ?? join(homedir(), '.harne
 const PID_DIR = join(HARNESS_HOME, 'pids');
 const PID_FILE = join(PID_DIR, 'gateway.pid');
 
-const DEFAULT_PORT = 8765;
+const DEFAULT_PORT = 18766;
 const DEFAULT_HOST = '127.0.0.1';
 
 // ── helpers ──

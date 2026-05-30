@@ -165,3 +165,5 @@ class TechnicalSkill(BaseSkill):
 
 # Auto-register
 skill_registry.register(TechnicalSkill())
+skill_registry.alias("technical-analysis", "technical")
+skill_registry.alias("technical_skill", "technical")

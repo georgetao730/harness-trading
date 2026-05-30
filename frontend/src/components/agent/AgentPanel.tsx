@@ -1,18 +1,21 @@
 'use client';
 
-import { getHarnessStatus, getMarketIndices, getPortfolio } from '@/lib/api';
-import type { HarnessStatus, MarketIndex, PortfolioSummary } from '@/lib/api';
+import { getHarnessStatus, getMarketIndices, getPortfolio, getAgentRoles, setAgentRole } from '@/lib/api';
+import type { HarnessStatus, MarketIndex, PortfolioSummary, AgentRoleInfo } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
   Activity,
   BarChart3,
   Bot,
   Brain,
+  ChevronDown,
+  Loader2,
   RefreshCw,
   Send,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
+  Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -21,6 +24,10 @@ export function AgentPanel() {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [harnessStatus, setHarnessStatus] = useState<HarnessStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [roles, setRoles] = useState<AgentRoleInfo[]>([]);
+  const [activeRole, setActiveRole] = useState('default');
+  const [roleSwitching, setRoleSwitching] = useState(false);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -39,11 +46,32 @@ export function AgentPanel() {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const resp = await getAgentRoles();
+      setRoles(resp.roles || []);
+      setActiveRole((resp as any).active || 'default');
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchRoles();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const switchRole = async (roleName: string) => {
+    setRoleSwitching(true);
+    try {
+      await setAgentRole(roleName);
+      setActiveRole(roleName);
+      setShowRoleDropdown(false);
+    } catch { /* ignore */ }
+    finally {
+      setRoleSwitching(false);
+    }
+  };
 
   const marketUp = indices.filter((i) => i.change_pct >= 0).length;
   const marketBias =
@@ -83,6 +111,68 @@ export function AgentPanel() {
 
       {/* 内容 */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {/* Agent 角色选择 */}
+        {roles.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider px-1">
+              Agent 角色
+            </p>
+            <div className="relative">
+              <button
+                onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[var(--color-surface-hover)]/50 hover:bg-[var(--color-surface-hover)] transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                  <span className="text-xs font-medium">
+                    {activeRole === 'default' || activeRole === ''
+                      ? '默认助手'
+                      : roles.find((r) => r.name === activeRole)?.display_name || activeRole}
+                  </span>
+                </div>
+                {roleSwitching ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--color-text-muted)]" />
+                ) : (
+                  <ChevronDown className={cn(
+                    'w-3.5 h-3.5 text-[var(--color-text-muted)] transition-transform',
+                    showRoleDropdown && 'rotate-180',
+                  )} />
+                )}
+              </button>
+              {showRoleDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-10 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg overflow-hidden">
+                  <button
+                    onClick={() => switchRole('default')}
+                    className={cn(
+                      'w-full text-left px-3 py-2 text-xs hover:bg-[var(--color-surface-hover)] transition-colors',
+                      activeRole === 'default' || activeRole === ''
+                        ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                        : '',
+                    )}
+                  >
+                    🤖 默认助手
+                  </button>
+                  {roles.map((role) => (
+                    <button
+                      key={role.name}
+                      onClick={() => switchRole(role.name)}
+                      className={cn(
+                        'w-full text-left px-3 py-2 text-xs hover:bg-[var(--color-surface-hover)] transition-colors',
+                        activeRole === role.name
+                          ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                          : '',
+                      )}
+                    >
+                      <span className="font-medium">{role.display_name}</span>
+                      <span className="text-[9px] text-[var(--color-text-muted)] ml-2">{role.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 指数概览 */}
         {indices.length > 0 && (
           <div className="space-y-1">
@@ -191,7 +281,7 @@ export function AgentPanel() {
                       ? 'bg-yellow-500/10 text-yellow-400'
                       : harnessStatus.mode === 'auto'
                         ? 'bg-green-500/10 text-green-400'
-                        : harnessStatus.mode === 'manual'
+                        : harnessStatus.mode === 'approval'
                           ? 'bg-blue-500/10 text-blue-400'
                           : 'bg-red-500/10 text-red-400',
                   )}
@@ -200,8 +290,8 @@ export function AgentPanel() {
                     ? '演练'
                     : harnessStatus.mode === 'auto'
                       ? '自动'
-                      : harnessStatus.mode === 'manual'
-                        ? '手动'
+                      : harnessStatus.mode === 'approval'
+                        ? '审批'
                         : '熔断'}
                 </span>
               </div>
@@ -210,12 +300,12 @@ export function AgentPanel() {
                 <span
                   className={cn(
                     'text-[10px] font-medium',
-                    harnessStatus.circuit_breaker_triggered
+                    harnessStatus.circuit_breaker.triggered
                       ? 'text-[var(--color-danger)]'
                       : 'text-[var(--color-success)]',
                   )}
                 >
-                  {harnessStatus.circuit_breaker_triggered ? '已触发' : '正常'}
+                  {harnessStatus.circuit_breaker.triggered ? '已触发' : '正常'}
                 </span>
               </div>
             </div>

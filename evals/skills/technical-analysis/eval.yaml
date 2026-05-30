@@ -1,49 +1,42 @@
-# Skills/technical-analysis Eval Suite
-# L1 cases: 字面断言 handler 输出的数据格式和内容
-# L2 cases: LLM-judge 语义质量（需要 LLM 运行时）
-
+# Technical Analysis Skill Eval Suite
 name: technical-analysis
-description: 评测 technical-analysis 技能的指标计算正确性和输出格式
+description: 验证技术分析技能（MACD/RSI/布林带/均线）的正确性
 
 cases:
-  # ── L1: 数据结构断言 ──
-  - id: ta-l1-ema
-    description: EMA 指标计算后输出包含 ema_values 数组
+  - id: ta-l1-macd-structure
+    description: MACD 数据结构完整性
     level: L1
-    skill: technical-analysis
+    skill: technical
     inputs:
-      symbol: "600519.SH"
-      indicators: ema
-      period: 20
-    expected_contains: "ema"
+      symbol: "000001.SH"
+      indicator: macd
+    expected_contains: "dif"
+    regex_match: "diff|dif|dea|histogram"
 
-  - id: ta-l1-rsi
-    description: RSI 指标计算后输出包含 rsi_values
+  - id: ta-l1-rsi-range
+    description: RSI 值应在 0-100 范围内
     level: L1
-    skill: technical-analysis
+    skill: technical
     inputs:
-      symbol: "600519.SH"
-      indicators: rsi
-      period: 14
-    expected_contains: "rsi"
+      symbol: "000001.SH"
+      indicator: rsi
+    expected_contains: "rsi14"
 
-  - id: ta-l1-macd
-    description: MACD 指标输出包含 diff, dea, hist
+  - id: ta-l1-ma-trend
+    description: 均线系统 trend 字段
     level: L1
-    skill: technical-analysis
+    skill: technical
     inputs:
-      symbol: "600519.SH"
-      indicators: macd
-    expected_contains: "macd"
+      symbol: "000001.SH"
+      indicator: ma
+    expected_contains: "trend"
+    regex_match: "bullish|bearish|unknown"
 
-  # ── L2: 语义质量断言 ──
-  - id: ta-l2-analysis
-    description: 多指标综合分析包含趋势判断和文字说明
+  - id: ta-l2-reasoning
+    description: 指标输出的交易建议应含分析逻辑
     level: L2
-    skill: technical-analysis
+    skill: technical
     inputs:
-      symbol: "600519.SH"
-      indicators: combined
-    rubric: >
-      输出应包含至少两个技术指标的数值数据，并有对当前趋势的文字描述。
-      文字描述不少于20个中文字符。
+      symbol: "000001.SH"
+      indicator: all
+    rubric: "技术指标输出应包含明确的趋势判断（bullish/bearish）和对当前市场状态的描述"

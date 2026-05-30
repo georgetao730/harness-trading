@@ -1,6 +1,6 @@
 # BrokerChannel Adapter Protocol (v0.1)
 
-> Status: **Draft** · Owner: harness-trading core · Depends on: [tech-spec-phase2.md](./tech-spec-phase2.md), [ADR-0003](./adr/phase2-decisions.md#adr-0003--broker-plugin-范围), [ADR-0005](./adr/phase2-decisions.md#adr-0005--auth-token-策略)
+> Status: **Draft** · Owner: harness-trading core · Depends on: [ADR-0003](./adr/phase2-decisions.md#adr-0003--broker-plugin-范围), [ADR-0005](./adr/phase2-decisions.md#adr-0005--auth-token-策略)
 
 定义 `BrokerChannel` 作为 Channels 一等公民如何被实现、注册、调用，以及 `HarnessToken` 如何在 paper / live 模式间提供安全闸门。
 

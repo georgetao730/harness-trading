@@ -1,163 +1,148 @@
 # harness-trading · Roadmap & Status
 
-> **Last updated**: 2026-05-29 · **Current commit**: [`a8ffc14`](https://github.com/georgetao730/harness-trading/commit/a8ffc14) (`main`)
+> **Last updated**: 2026-05-29 · **Current branch**: `main`
 >
-> Live status board for everyone working on the harness-trading agentic-quant scaffold. Read this first if you've just been added to the repo.
+> Live status board for the harness-trading agentic-quant platform.
 
 ---
 
-## TL;DR for new contributors
+## TL;DR
 
-1. **What is this?** A "skill-shaped" agentic quant assistant — Node thin shell + Python thick core. The pitch is in the [README](../README.md); the architecture decision is "Plan B" in [tech-spec-phase2.md](./tech-spec-phase2.md).
-2. **Where are we?** Sprint 0 (decision week) is **closed**. The repo currently holds a working monorepo skeleton — no real CLI logic yet.
-3. **What can I pick up?** See [§4 Open work](#4--open-work-pick-from-here) below; tasks are tagged `good-first-task` / `M` / `L`.
-4. **Where do I read?** This file → `tech-spec-phase2.md` → the protocol docs (`node-python-bridge.md`, `broker-adapter-protocol.md`) → the ADRs (`adr/phase2-decisions.md`).
-
----
-
-## 1 · The North Star
-
-We are building **the smallest agentic scaffold a quant trader actually wants to run on their laptop**:
-
-- `npm i -g harness-trading` → `harness-trading onboard` → conversational quant workflows
-- Skills (backtest / paper-trade / generate-strategy) are **markdown SKILL.md + a runner** — the same shape as Claude Code skills
-- Channels (Feed / Alert / Surface / Broker) are first-class extension points
-- A `HarnessToken` capability gate stands between any agent reasoning and a real broker order
-
-Non-goals: enterprise multi-tenant trading platforms, low-latency HFT, replacing TradingView/QuantConnect. We're cosplaying **Claude Code for trading**, not Bloomberg.
-
-Full vision in [tech-spec-phase2.md §1–§3](./tech-spec-phase2.md).
+1. **What is this?** An AI-powered agentic trading assistant — Next.js frontend + FastAPI backend, skill-shaped workflows, eval harness, BM25 knowledge garden.
+2. **Where are we?** Phase 2 complete. Frontend (10+ pages) and backend fully functional. Channels management, Skills visualization, Agent roles, Dashboard KPIs, Knowledge RAG — all live. Community-ready.
+3. **Phase 1 (MVP)**: ✅ 10/10 complete — backend + market data + safety harness.
+4. **Phase 2 (补齐)**: ✅ 7/7 complete — tests, persistence, knowledge frontend, settings, workflow aliases, CI/CD, docker.
+5. **Phase 3 (联调与生产)**: 🟡 In progress — Node packages, broker adapters, channels, production quality.
 
 ---
 
-## 2 · Architecture in 5 lines
+## 1 · Architecture Overview
 
 ```
-Node thin shell                 Python thick core
-┌────────────────┐              ┌──────────────────────────────────┐
-│ packages/cli   │  ws (JSON)   │ backend/app/gateway              │
-│ packages/      │ ◄──────────► │ backend/app/{channels, skills_   │
-│   ws-bridge    │   v1/        │   runtime, workflows, agents}    │
-│ packages/      │              │ backend/app/security/token.py    │
-│   supervisor   │              └──────────────────────────────────┘
-│ packages/      │
-│   agentic-hooks│
-│ packages/web   │
-└────────────────┘
+Frontend (Next.js)                Backend (FastAPI, port 18766)
+┌──────────────────────┐          ┌──────────────────────────────────────┐
+│ src/components/      │  HTTP    │ app/api/       REST endpoints        │
+│  agent/              │ ◄──────► │ app/gateway/   WS bridge (Node↔Py)   │
+│  charts/             │          │ app/agent/     Skills + Roles        │
+│  dashboard/          │          │ app/workflows/ YAML-driven engine     │
+│  harness/            │          │ app/eval/      L1/L2/L3 assertions   │
+│  knowledge/          │          │ app/knowledge/ BM25 full-text search │
+│  portfolio/          │          │ app/harness/   Validator + CB        │
+│  settings/           │          │ app/llm/       Multi-provider router │
+│  workflow/           │          │ app/db/        SQLAlchemy + aiosqlite│
+│                       │          │ app/channels/  Feed/Alert/Broker     │
+└──────────────────────┘          └──────────────────────────────────────┘
 ```
 
 - Wire protocol: [docs/node-python-bridge.md](./node-python-bridge.md)
 - Broker plugin contract: [docs/broker-adapter-protocol.md](./broker-adapter-protocol.md)
-- All cross-cutting decisions: [docs/adr/phase2-decisions.md](./adr/phase2-decisions.md)
 
 ---
 
-## 3 · Sprint timeline (status snapshot)
+## 2 · Sprint Timeline
 
-| Sprint | Focus | Status | Exit criteria |
+| Sprint | Focus | Status | Exit Criteria |
 |---|---|---|---|
-| **S0** | Decision week + monorepo scaffold + CI | ✅ **Done** (commit `a8ffc14`) | 7 ADRs Accepted; pnpm workspace builds; CI matrix runs |
-| **S1** | Node CLI + Python Gateway, end-to-end ws handshake | 🟡 **Up next** | `harness-trading onboard` ➜ `gateway start` ➜ `harness-trading version` round-trips through ws |
-| **S2** | Skills directory + Channels protocol layer + paper broker | ⏸ Planned | `skill list` shows on-disk skills; paper broker accepts orders gated by HarnessToken |
-| **S3** | Workflows YAML runtime + agent adapters (Claude / Codex hooks) | ⏸ Planned | `workflow run validate` runs a 3-stage YAML; Claude Code hook fires UserPromptSubmit |
-| **S4** | Web UI migration + eval harness + knowledge garden | ⏸ Planned | `frontend/` lives in `packages/web/`; `pnpm eval` runs replayable cases |
-| **S5** | Live broker demo (1 real adapter, paper-protected) | ⏸ Planned | A community broker (e.g. Tiger / Longbridge) wrapper is published as a sibling npm pkg |
-
-Each sprint is **2 weeks**; we're not in a hurry. Quality > speed.
-
----
-
-## 4 · Open work — pick from here
-
-> **Convention**: pick a task, comment on the GitHub issue (or open one), branch off `main` as `feat/<short>` or `fix/<short>`, open a PR. CI must pass. Squash-merge into `main`.
-
-### S1 · CLI + Gateway end-to-end (current sprint)
-
-| ID | Task | Size | Files | Skills needed |
-|---|---|---|---|---|
-| S1-01 | Implement `harness-trading onboard` (write `~/.harness-trading/auth.json` + `secret.key` + 0600 perms) | M | [packages/cli/src/](../packages/cli/src/) | Node fs / crypto |
-| S1-02 | Implement `harness-trading doctor` (check py3.12, uv, port 8765 free) | S `good-first-task` | packages/cli/src/ | Node child_process |
-| S1-03 | Implement `harness-trading gateway start\|stop\|status` (spawn uvicorn, PID file, healthcheck) | M | [packages/supervisor/src/](../packages/supervisor/src/) | Node subprocess management |
-| S1-04 | Build ws-bridge client per [node-python-bridge.md](./node-python-bridge.md) §2-§4 (frame envelope, hello handshake, request/response, ping) | L | [packages/ws-bridge/src/](../packages/ws-bridge/src/) | WebSocket / async / typed messages |
-| S1-05 | FastAPI Gateway server (mirror image of S1-04 on Python side) | L | `backend/app/gateway/` (new) | FastAPI + websockets |
-| S1-06 | `auth.py` constant-time token compare + `~/.harness-trading/auth.json` reader | S | `backend/app/security/` (new) | Python hmac |
-| S1-07 | Vitest tests for ws-bridge handshake + error codes | M | packages/ws-bridge/tests/ | Vitest |
-| S1-08 | Pytest tests for Gateway dispatcher + auth | M | backend/tests/ | pytest-asyncio |
-| S1-09 | First `agentic-hooks` adapter: Claude Code (`UserPromptSubmit`) | M | [packages/agentic-hooks/src/](../packages/agentic-hooks/src/) | Claude Code hooks reference |
-
-### Cross-cutting (anyone, any sprint)
-
-| ID | Task | Size |
-|---|---|---|
-| X-01 | Local first-run: `pnpm install` then `pnpm build` then `make test`; commit the resulting `pnpm-lock.yaml` so CI uses frozen lockfile | S `good-first-task` |
-| X-02 | Add `prettier` action to GitHub PRs that comments biome diffs | S |
-| X-03 | Write `CONTRIBUTING.md` (branching, PR template, conventional-commits) | S `good-first-task` |
-| X-04 | Trim `backend/pyproject.toml` `dependencies` — move `openai` / `anthropic` / `google-genai` into `[llm]` extras | M |
+| **S0** | Decision week + monorepo scaffold | ✅ Done | 7 ADRs Accepted; pnpm workspace builds |
+| **S1-S3** | Backend core: Gateway, Skills, Workflows, Agents, LLM routing | ✅ Done | 4 workflows, 5 agent roles, real market data via Sina/Tencent |
+| **S4** | Eval Harness + Knowledge Garden + Web Dashboard | ✅ Done | BM25 search, 10 frontend pages all API-connected |
+| **Phase 2 补齐** | Tests, Persistence, Knowledge/Settings Frontend, CI/CD, Docker | ✅ Done | 51 pytest cases, SQLAlchemy 5 tables, GitHub Actions, Docker compose |
+| **S5** | Frontend Polish + Community Ready | ✅ Done | Channels CRUD, Skills viz & create, Agent roles, Dashboard KPIs, Watchlist, Journal, Theme toggle |
+| **S6** | Node package integration + real broker adapter | 🟡 In progress | CLI ↔ Gateway round-trip; 1 real broker demo |
+| **S7** | Channels live + production quality | ⏸ Planned | Real-time market feeds, auth, rate limiting, logging |
 
 ---
 
-## 5 · How to start locally (zero to first contribution)
+## 3 · Phase 3: Remaining Work
 
-```bash
-# 1. clone
-git clone git@github.com:georgetao730/harness-trading.git
-cd harness-trading
+### P3-01: Node Package Integration (🔴 L)
 
-# 2. install Node side
-pnpm install                          # workspace root + all 6 packages
+Make `packages/cli` + `packages/ws-bridge` + `packages/supervisor` production-ready:
 
-# 3. install Python side
-brew install python@3.12              # ADR-0001: bring your own Python
-pipx install uv                       # or: curl -LsSf https://astral.sh/uv/install.sh | sh
-make install-py                       # uv sync, creates backend/.venv
+| ID | Task | Size | Status |
+|---|---|---|---|
+| N-01 | ws-bridge client ↔ Python Gateway handshake validated | M | 🟡 Skeleton exists |
+| N-02 | `harness-trading gateway start` spawns uvicorn | M | 🟡 Skeleton exists |
+| N-03 | `harness-trading doctor` checks env | S | ❌ Not started |
+| N-04 | End-to-end: CLI → ws-bridge → Gateway → Skill → response | L | ❌ Not started |
 
-# 4. one-shot CI replica
-make ci                               # lint + typecheck + build + test (Node + Python)
-```
+### P3-02: Real Broker Adapter (🔴 L)
 
-If `make ci` is green on your machine, your branch should be green on GitHub Actions too.
+| ID | Task | Size | Status |
+|---|---|---|---|
+| B-01 | Implement broker adapter protocol per spec | L | ❌ Not started |
+| B-02 | Paper broker: log trades to DB, update portfolio | M | 🟡 Basic skeleton exists |
+| B-03 | 1 real broker demo (Longbridge or Tiger) | L | ❌ Not started |
+
+### P3-03: Channels Live (🟡 M)
+
+| ID | Task | Size | Status |
+|---|---|---|---|
+| C-01 | Market data feed channel (WebSocket push) | M | 🟡 Architecture exists, no real push |
+| C-02 | Alert channel web UI config + test send (飞书/钉钉/企微) | M | ✅ Done |
+| C-03 | Channel status monitoring in frontend | S | ✅ Done |
+
+### P3-04: Agent Chat Streaming (🟡 M)
+
+| ID | Task | Size | Status |
+|---|---|---|---|
+| A-01 | Replace simulated thinking steps with real skill execution logs | M | 🟡 Still simulated |
+| A-02 | Server-Sent Events (SSE) for token streaming | S | 🟡 WebSocket exists but uses sleep(0.8) |
+
+### P3-05: Content & Quality (🟢 S)
+
+| ID | Task | Size | Status |
+|---|---|---|---|
+| Q-01 | Expand knowledge docs (3 → 10+) | S | ✅ 9 docs |
+| Q-02 | Expand eval suites (1 → 4+) | S | 🟡 1 suite |
+| Q-03 | Safety center logs: replace hardcoded with real events | S | 🟡 Hardcoded |
+| Q-04 | Add LICENSE file | S | ✅ Done |
+| Q-05 | Update roadmap (this file) | S | ✅ Done |
+
+### P3-06: Production Readiness (🟢 M)
+
+| ID | Task | Size | Status |
+|---|---|---|---|
+| P-01 | API authentication / rate limiting | M | ❌ |
+| P-02 | Structured logging to file | S | ❌ |
+| P-03 | SQLite backup/restore tooling | S | ❌ |
+| P-04 | Environment-specific config profiles | S | ❌ |
 
 ---
 
-## 6 · Decision log (what's locked, what's still open)
-
-### Locked (do not relitigate without an ADR amendment)
-
-- **Plan B over Plan A** — Node thin shell + Python core, not pure Node ([§4 of tech-spec-phase2.md](./tech-spec-phase2.md#4--方案对比与决策))
-- **All 7 Sprint-0 questions** — see [adr/phase2-decisions.md](./adr/phase2-decisions.md) for ADR-0001 through ADR-0007
-- **biome over eslint+prettier** — one tool, one config, fewer plugin debates
-- **`docs/` lives in the OSS repo** — flipped from "internal-only" because we now need to onboard collaborators (this PR)
-
-### Still open (raise an issue / discussion)
-
-- Telemetry: do we ship anonymous usage telemetry by default? (lean: no, opt-in only)
-- License: `MIT` is provisional; need an explicit `LICENSE` file at the repo root before public announcement
-- Versioning policy: `0.x` semver-loose vs strict? (lean: 0.x = loose, 1.0 onward = strict semver)
-
----
-
-## 7 · Sources of truth
+## 4 · File Map
 
 | Topic | File |
 |---|---|
 | Vision / pitch | [README.md](../README.md) |
 | 2-minute install | [QUICKSTART.md](../QUICKSTART.md) |
-| Architecture | [docs/tech-spec-phase2.md](./tech-spec-phase2.md) |
-| Wire protocol (Node ↔ Python) | [docs/node-python-bridge.md](./node-python-bridge.md) |
-| Broker plugin contract | [docs/broker-adapter-protocol.md](./broker-adapter-protocol.md) |
-| Decisions (immutable) | [docs/adr/phase2-decisions.md](./adr/phase2-decisions.md) |
-| **This file** — current status | [docs/roadmap.md](./roadmap.md) |
+| Architecture spec | [docs/broker-adapter-protocol.md](./broker-adapter-protocol.md) |
+| Wire protocol | [docs/node-python-bridge.md](./node-python-bridge.md) |
+| Broker protocol | [docs/broker-adapter-protocol.md](./broker-adapter-protocol.md) |
+| ADRs | [docs/adr/phase2-decisions.md](./adr/phase2-decisions.md) |
+| License | [LICENSE](../LICENSE) |
+| **This file** | [docs/roadmap.md](./roadmap.md) |
 
 ---
 
-## 8 · How this file is maintained
+## 5 · How to Start
 
-- **At every sprint boundary**: someone updates §3 status column + §4 task list + bumps "Last updated" + "Current commit".
-- **At any meaningful merge**: tick off completed tasks in §4; if the merge changes a locked decision, write a follow-up ADR and link from §6.
-- **Never** delete history — strike-through `~~done~~` is fine; we want the trail.
+```bash
+# Backend (Python)
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --port 18766 --reload
 
-If you're picking up a task, also drop a one-line comment in §4 like `(WIP @yourhandle, 2026-06-02)` so others don't double-grab.
+# Frontend (Next.js)
+cd frontend
+npm install
+npx next dev --webpack -p 3000
+
+# Tests
+cd backend && python -m pytest tests/ -v    # 51 tests
+cd frontend && npx tsc --noEmit             # typecheck
+```
 
 ---
 
-*Authored during Sprint 0 close-out. Welcome aboard. 🚀*
+*Last updated: 2026-05-29 · S5 complete, S6 in progress.*

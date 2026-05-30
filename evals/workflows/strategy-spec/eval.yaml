@@ -1,15 +1,33 @@
-# Workflows/strategy-spec Eval Suite
-# L3 cases: 端到端跑 workflow，断言工作流阶段完成
-
+# Strategy Spec Workflow Eval Suite
 name: strategy-spec
-description: 评测 strategy-spec 工作流的端到端执行
+description: 验证策略设计工作流产出结构化策略文档
 
 cases:
-  - id: wf-l3-basic
-    description: 基础策略设计工作流 — 3 个阶段全部完成
-    level: L3
+  - id: ss-l1-output-format
+    description: 策略输出应包含必需字段
+    level: L1
     workflow: strategy-spec
     inputs:
-      idea: 均线金叉买入信号策略
-      symbols: "000001.SZ,600519.SH"
+      idea: "MACD金叉买入"
+      symbols: "600519.SH"
       risk_budget_pct: 5
+    expected_contains: "symbols"
+
+  - id: ss-l2-quality
+    description: 输出策略文档应有明确的入场/出场条件
+    level: L2
+    workflow: strategy-spec
+    inputs:
+      idea: "均线多头排列做多"
+      symbols: "000001.SH"
+      risk_budget_pct: 3
+    rubric: "策略输出应包含明确的买入信号条件和止损规则，有至少一条量化标准（如百分比、均线参数等）"
+
+  - id: ss-l1-required-inputs
+    description: 缺少必需参数应返回错误
+    level: L1
+    workflow: strategy-spec
+    inputs:
+      idea: ""
+      symbols: ""
+    expected_contains: "error"

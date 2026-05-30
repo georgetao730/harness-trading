@@ -10,7 +10,10 @@ from loguru import logger
 
 from .builtin.dingtalk_alert import DingTalkAlert
 from .builtin.eastmoney_feed import EastMoneyFeed
+from .builtin.feishu_alert import FeishuAlert
+from .builtin.wecom_alert import WeComAlert
 from .paper_broker import PaperBroker
+from ..execution.brokers import PaperBrokerAdapter, EastMoneyBrokerAdapter
 from .registry import channel_registry
 
 
@@ -63,6 +66,16 @@ def _bootstrap_alerts(config: dict[str, Any]) -> int:
             channel = DingTalkAlert(webhook_url=webhook)
             channel_registry.register_alert(channel)
             count += 1
+        elif name == "feishu":
+            webhook = str(cfg.get("webhook_url", ""))
+            channel = FeishuAlert(webhook_url=webhook)
+            channel_registry.register_alert(channel)
+            count += 1
+        elif name == "wecom":
+            webhook = str(cfg.get("webhook_url", ""))
+            channel = WeComAlert(webhook_url=webhook)
+            channel_registry.register_alert(channel)
+            count += 1
         else:
             logger.warning(f"Unknown alert channel: {name}")
     return count
@@ -86,7 +99,19 @@ def _bootstrap_brokers(config: dict[str, Any]) -> int:
             engine = PaperTradingEngine(initial_cash=cash)
             channel = PaperBroker(engine=engine)
             channel_registry.register_broker(channel)
+
+            # Also register the adapter version for richer API
+            adapter = PaperBrokerAdapter(engine=engine)
+            channel_registry.register_broker(adapter)
+
             count += 1
+        elif name == "eastmoney":
+            cash = float(cfg.get("initial_cash", 1_000_000.0))
+            adapter = EastMoneyBrokerAdapter(initial_cash=cash)
+            # connect() is synchronous (just sets a flag) even though declared async
+            channel_registry.register_broker(adapter)
+            count += 1
+            logger.info(f"Registered EastMoney broker (simulated, cash={cash:,.0f})")
         else:
             logger.warning(f"Unknown broker channel: {name}")
     return count

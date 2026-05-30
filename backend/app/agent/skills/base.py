@@ -49,13 +49,26 @@ class SkillRegistry:
 
     def __init__(self):
         self._skills: Dict[str, BaseSkill] = {}
+        self._aliases: Dict[str, str] = {}
 
     def register(self, skill: BaseSkill):
         self._skills[skill.name] = skill
         logger.info(f"Registered skill: {skill.name} [{skill.category.value}]")
 
+    def alias(self, name: str, target: str) -> None:
+        """Create an alias so workflows can use a different name."""
+        self._aliases[name] = target
+        logger.debug(f"Skill alias: {name} -> {target}")
+
     def get(self, name: str) -> Optional[BaseSkill]:
-        return self._skills.get(name)
+        # Check direct name first, then alias
+        skill = self._skills.get(name)
+        if skill:
+            return skill
+        target = self._aliases.get(name)
+        if target:
+            return self._skills.get(target)
+        return None
 
     def list_by_category(self, category: Optional[SkillCategory] = None) -> List[BaseSkill]:
         skills = list(self._skills.values())
@@ -64,7 +77,14 @@ class SkillRegistry:
         return skills
 
     def list_all(self) -> Dict[str, dict]:
-        return {name: skill.to_dict() for name, skill in self._skills.items()}
+        result = {}
+        for name, skill in self._skills.items():
+            result[name] = skill.to_dict()
+        # Also show aliases
+        for alias_name, target in self._aliases.items():
+            if target in self._skills:
+                result[alias_name] = {**self._skills[target].to_dict(), "_alias_for": target}
+        return result
 
 
 # Global skill registry

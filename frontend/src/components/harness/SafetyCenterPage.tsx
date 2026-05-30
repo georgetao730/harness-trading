@@ -7,26 +7,38 @@ import {
   AlertTriangle,
   Ban,
   Gauge,
+  RefreshCw,
   Shield,
   ShieldAlert,
   ShieldCheck,
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-const triggerLogs = [
-  { time: '14:32:15', type: 'warning' as const, message: 'NVDA.US 接近止损位 $1010' },
-  { time: '10:15:03', type: 'info' as const, message: '每日风控检查通过，开始交易' },
-  { time: '09:00:00', type: 'info' as const, message: '开盘前熔断器状态：正常' },
-  { time: '昨天 15:30', type: 'danger' as const, message: '日内亏损触及3%预警线' },
-  { time: '昨天 11:20', type: 'warning' as const, message: '下单频率接近限制 (4/5)' },
-];
+interface SafetyEvent {
+  time: string;
+  type: 'info' | 'warning' | 'danger';
+  message: string;
+}
+
+const eventLogs0: SafetyEvent[] = [];
 
 export function SafetyCenterPage() {
   const [activeSection, setActiveSection] = useState<'rules' | 'controls' | 'logs'>('rules');
   const [config, setConfig] = useState<HarnessConfig | null>(null);
   const [circuitTriggered, setCircuitTriggered] = useState(false);
+  const [eventLogs, setEventLogs] = useState<SafetyEvent[]>([]);
+
+  const fetchEvents = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/harness/events');
+      const data = await resp.json();
+      setEventLogs(data.events || []);
+    } catch {
+      // keep existing logs
+    }
+  }, []);
 
   useEffect(() => {
     Promise.all([getHarnessConfig(), getHarnessStatus()])
@@ -37,7 +49,8 @@ export function SafetyCenterPage() {
       .catch(() => {
         // Use defaults
       });
-  }, []);
+    fetchEvents();
+  }, [fetchEvents]);
 
   const validatorRules = config?.validator_rules || [];
   const riskControls = config?.risk_controls || [];
@@ -341,28 +354,43 @@ export function SafetyCenterPage() {
       {/* 安全日志 */}
       {activeSection === 'logs' && (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
-          <div className="px-4 py-3 border-b border-[var(--color-border)]">
+          <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
             <h3 className="text-sm font-semibold">安全日志</h3>
+            <button
+              onClick={fetchEvents}
+              className="p-1 rounded hover:bg-[var(--color-surface-hover)] transition-colors"
+              title="刷新"
+            >
+              <RefreshCw className="w-3 h-3 text-[var(--color-text-muted)]" />
+            </button>
           </div>
           <div className="divide-y divide-[var(--color-border)]">
-            {triggerLogs.map((log, i) => (
-              <div key={i} className="flex items-start gap-3 px-4 py-2.5">
-                <span
-                  className={cn(
-                    'w-2 h-2 rounded-full mt-1.5 flex-shrink-0',
-                    log.type === 'danger' && 'bg-[var(--color-danger)]',
-                    log.type === 'warning' && 'bg-[var(--color-warning)]',
-                    log.type === 'info' && 'bg-[var(--color-primary)]',
-                  )}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-[var(--color-text-primary)]">{log.message}</p>
-                </div>
-                <span className="text-[10px] text-[var(--color-text-muted)] flex-shrink-0">
-                  {log.time}
-                </span>
+            {eventLogs.length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-[var(--color-text-muted)]">
+                <ShieldCheck className="w-6 h-6 mb-1 opacity-30" />
+                <p className="text-xs">暂无安全事件</p>
+                <p className="text-[10px] opacity-60 mt-0.5">系统运行正常或后端未连接</p>
               </div>
-            ))}
+            ) : (
+              eventLogs.map((log, i) => (
+                <div key={i} className="flex items-start gap-3 px-4 py-2.5">
+                  <span
+                    className={cn(
+                      'w-2 h-2 rounded-full mt-1.5 flex-shrink-0',
+                      log.type === 'danger' && 'bg-[var(--color-danger)]',
+                      log.type === 'warning' && 'bg-[var(--color-warning)]',
+                      (log.type === 'info') && 'bg-[var(--color-primary)]',
+                    )}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-[var(--color-text-primary)]">{log.message}</p>
+                  </div>
+                  <span className="text-[10px] text-[var(--color-text-muted)] flex-shrink-0">
+                    {log.time}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

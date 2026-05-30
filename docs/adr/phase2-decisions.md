@@ -1,6 +1,6 @@
 # Phase 2 — 7 个核心决策（ADR 0001-0007）
 
-> Sprint 0 决策周产出。所有决策**已 Accepted**，对应 [docs/tech-spec-phase2.md §18](../tech-spec-phase2.md) 的 Q1-Q7。
+> Sprint 0 决策周产出。所有决策**已 Accepted**。
 > 决策日期：2026-05-29。决策人：@georgetao730。
 > 后续若推翻某条，**必须**以新 ADR 形式覆盖（不直接改本文件原文，加 `Superseded by ADR-NNNN`）。
 

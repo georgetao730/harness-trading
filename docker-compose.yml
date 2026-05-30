@@ -4,10 +4,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "18766:18766"
     volumes:
       - ./backend:/app
       - ./config:/app/config
+      - ./workflows:/app/workflows
+      - ./knowledge:/app/knowledge
+      - ./agents:/app/agents
+      - ./evals:/app/evals
     environment:
       - APP_ENV=development
       - APP_DEBUG=true
@@ -26,8 +30,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - BACKEND_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://localhost:18766
+      - BACKEND_URL=http://backend:18766
     depends_on:
       - backend
     restart: unless-stopped

@@ -195,6 +195,81 @@ class KnowledgeGarden:
             if e.status == "candidate"
         ]
 
+    def list_all(self) -> list[dict[str, Any]]:
+        """List all indexed entries (brief with snippet)."""
+        return [
+            {
+                "id": e.id,
+                "title": e.title,
+                "tags": e.tags,
+                "category": e.category,
+                "status": e.status,
+                "source": e.source,
+                "snippet": e.content[:200],
+            }
+            for e in self._entries.values()
+        ]
+
+    def create_entry(self, entry_id: str, title: str, content: str,
+                     tags: list[str] | None = None, category: str = "",
+                     source: str = "", status: str = "candidate") -> bool:
+        """Create a new knowledge entry and write it to knowledge/ directory."""
+        markdown_dir = self._root / "knowledge"
+        markdown_dir.mkdir(parents=True, exist_ok=True)
+
+        tags = tags or []
+        filepath = markdown_dir / f"{entry_id}.md"
+
+        # Build YAML frontmatter + content
+        frontmatter = {
+            "id": entry_id,
+            "title": title,
+            "tags": tags,
+            "category": category,
+            "status": status,
+            "source": source,
+        }
+        yaml_str = yaml.dump(frontmatter, allow_unicode=True, default_flow_style=False)
+        file_content = f"---\n{yaml_str}---\n\n{content}"
+        filepath.write_text(file_content, encoding="utf-8")
+
+        # Index immediately
+        entry = KnowledgeEntry(
+            id=entry_id, title=title, content=content,
+            tags=tags, category=category, status=status, source=source,
+        )
+        self._entries[entry_id] = entry
+        text_for_index = f"{title} {content} {' '.join(tags)}"
+        self._bm25.index(entry_id, text_for_index)
+        for tag in tags:
+            self._by_tag[tag].append(entry_id)
+        if category:
+            self._by_category[category].append(entry_id)
+
+        logger.info(f"Knowledge entry created: {entry_id}")
+        return True
+
+    def delete_entry(self, entry_id: str) -> bool:
+        """Delete a knowledge entry (file + index)."""
+        entry = self._entries.pop(entry_id, None)
+        if entry is None:
+            return False
+
+        # Remove markdown file
+        filepath = self._root / "knowledge" / f"{entry_id}.md"
+        if filepath.exists():
+            filepath.unlink()
+
+        # Clean up tag/category indexes
+        for tag in entry.tags:
+            if entry_id in self._by_tag[tag]:
+                self._by_tag[tag].remove(entry_id)
+        if entry.category and entry_id in self._by_category[entry.category]:
+            self._by_category[entry.category].remove(entry_id)
+
+        logger.info(f"Knowledge entry deleted: {entry_id}")
+        return True
+
     def promote(self, entry_id: str) -> bool:
         """Promote a candidate knowledge entry."""
         entry = self._entries.get(entry_id)

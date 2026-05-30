@@ -1,5 +1,6 @@
 """Harness Pipeline - Orchestrates validation + risk + circuit breaker"""
 
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +17,26 @@ from .engine import (
     ValidationStatus,
 )
 from ..core.events import EventType, event_bus
+
+# In-memory event log for safety center display
+_event_log: list[dict] = []
+_MAX_EVENT_LOG = 100
+
+
+def get_event_log() -> list[dict]:
+    """Return recent safety events (non-blocking, for API)."""
+    return list(_event_log)
+
+
+def _log_event(event_type: str, detail: str) -> None:
+    entry = {
+        "time": time.strftime("%H:%M:%S"),
+        "type": event_type,
+        "message": detail,
+    }
+    _event_log.append(entry)
+    if len(_event_log) > _MAX_EVENT_LOG:
+        _event_log.pop(0)
 
 
 def _load_harness_config(path: str = "config/harness.yaml") -> dict:
@@ -67,10 +88,12 @@ class HarnessPipeline:
         # Step 0: Check circuit breaker
         if self.circuit_breaker.is_triggered:
             logger.warning("Circuit breaker active - rejecting all orders")
+            _log_event("danger", f"熔断器已触发，拒绝所有交易: {self.circuit_breaker.status.get('reason','')}")
             await event_bus.publish(EventType.ORDER_REJECTED, {
                 "symbol": intent.symbol,
                 "reason": "Circuit breaker active",
             })
+            self._broadcast_alert("🛑 订单被熔断器拦截", f"{intent.symbol} {intent.action} 被熔断拦截", level="error")
             return OrderApproval(
                 intent=intent,
                 approved=False,
@@ -86,10 +109,17 @@ class HarnessPipeline:
 
         rejected = [r for r in validation_results if r.status == ValidationStatus.REJECT]
         if rejected:
+            for r in rejected:
+                _log_event("danger", f"校验失败: {r.check_name} - {r.message}")
             await event_bus.publish(EventType.VALIDATION_FAILED, {
                 "symbol": intent.symbol,
                 "checks": [{"name": r.check_name, "message": r.message} for r in rejected],
             })
+            self._broadcast_alert(
+                "⚠️ 订单校验失败",
+                f"{intent.symbol}: " + "; ".join(r.message for r in rejected[:3]),
+                level="warning",
+            )
             return OrderApproval(
                 intent=intent,
                 approved=False,
@@ -153,13 +183,41 @@ class HarnessPipeline:
 
     def set_mode(self, mode: ExecutionMode):
         self.mode = mode
+        _log_event("info", f"执行模式切换为: {mode.value}")
         logger.info(f"Execution mode changed to {mode.value}")
 
     def trigger_circuit_breaker(self, reason: str = "Manual trigger"):
         self.circuit_breaker.trigger(reason)
+        _log_event("danger", f"熔断器手动触发: {reason}")
+        self._broadcast_alert("🚨 熔断器触发", reason, level="error")
 
     def reset_circuit_breaker(self):
         self.circuit_breaker.reset()
+        _log_event("info", "熔断器已手动重置")
+        self._broadcast_alert("✅ 熔断器已重置", "交易已恢复正常", level="info")
+
+    @staticmethod
+    def _broadcast_alert(title: str, body: str, level: str = "warning") -> None:
+        """Broadcast alert to all registered alert channels (non-blocking)."""
+        import asyncio
+
+        async def _send():
+            try:
+                from ..channels.registry import channel_registry
+                results = await channel_registry.broadcast_alert(title, body, level)
+                if results:
+                    logger.info(f"Alert broadcast: {title} → {results}")
+            except Exception as e:
+                logger.debug(f"Alert broadcast skipped: {e}")
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_send())
+            else:
+                asyncio.run(_send())
+        except RuntimeError:
+            pass
 
 
 # Global harness instance with defaults

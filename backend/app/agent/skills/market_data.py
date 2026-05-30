@@ -100,3 +100,5 @@ class MarketDataSkill(BaseSkill):
 
 # Auto-register
 skill_registry.register(MarketDataSkill())
+skill_registry.alias("market-scan", "market_data")
+skill_registry.alias("market_data_skill", "market_data")

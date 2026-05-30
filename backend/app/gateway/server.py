@@ -1,6 +1,6 @@
 """Gateway WebSocket server — FastAPI endpoint implementing the Node ↔ Python bridge.
 
-Endpoint: ws://127.0.0.1:8765/v1
+Endpoint: ws://127.0.0.1:18766/v1
 Protocol: docs/node-python-bridge.md
 
 Lifecycle per connection:

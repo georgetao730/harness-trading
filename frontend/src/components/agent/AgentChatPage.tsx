@@ -100,7 +100,7 @@ export function AgentChatPage() {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content:
-          '⚠️ AI 服务暂时不可用。请确认后端服务已启动 (`cd backend && uvicorn app.main:app --reload --port 8000`)。\n\n当前使用离线模式，你可以使用下方建议按钮或在等待服务恢复。',
+          '⚠️ AI 服务暂时不可用。请确认后端服务已启动 (`cd backend && uvicorn app.main:app --reload --port 18766`)。\n\n当前使用离线模式，你可以使用下方建议按钮或在等待服务恢复。',
         thinking: [],
         timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
       };

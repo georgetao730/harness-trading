@@ -31,7 +31,7 @@ function printCmdHelp(cmd: string): void {
 Usage: harness-trading onboard
 
   Walks through first-time setup:
-    1. Detects Python 3.12+ and uv
+    1. Detects Python 3.11+ and uv
     2. Generates auth token and secret key
     3. Writes ~/.harness-trading/auth.json
     4. Tests gateway connection
@@ -44,9 +44,9 @@ Usage: harness-trading doctor
 
   Checks:
     - Node.js >= 20
-    - Python 3.12+
+    - Python 3.11+
     - uv installed
-    - Gateway port 8765 available
+    - Gateway port 18766 available
     - auth.json present and valid
 `);
       break;
@@ -55,7 +55,7 @@ Usage: harness-trading doctor
 
 Usage: harness-trading gateway <start|stop|status>
 
-  start   Start the gateway on ws://127.0.0.1:8765
+  start   Start the gateway on ws://127.0.0.1:18766
   stop    Stop the running gateway
   status  Show gateway process status
 `);
@@ -120,14 +120,14 @@ async function cmdDoctor(): Promise<void> {
 
   // Python
   try {
-    const py = execSync('python3.12 --version 2>/dev/null || python3 --version 2>/dev/null', {
+    const py = execSync('python3 --version 2>/dev/null || python3.11 --version 2>/dev/null', {
       encoding: 'utf-8',
     }).trim();
     const pyMatch = py.match(/(\d+\.\d+)/);
-    const pyOk = pyMatch?.[1] ? Number.parseFloat(pyMatch[1]) >= 3.12 : false;
-    console.log(pyOk ? '✓' : '✗', `Python: ${py} ${pyOk ? '' : '(need >= 3.12)'}`);
+    const pyOk = pyMatch?.[1] ? Number.parseFloat(pyMatch[1]) >= 3.11 : false;
+    console.log(pyOk ? '✓' : '✗', `Python: ${py} ${pyOk ? '' : '(need >= 3.11)'}`);
   } catch {
-    console.log('✗ Python 3.12+ not found. Install: brew install python@3.12');
+    console.log('✗ Python 3.11+ not found. Install: brew install python@3.11');
   }
 
   // uv
@@ -140,7 +140,7 @@ async function cmdDoctor(): Promise<void> {
 
   // Port check
   try {
-    execSync('lsof -i :8765 2>/dev/null || true', { encoding: 'utf-8' });
+    execSync('lsof -i :18766 2>/dev/null || true', { encoding: 'utf-8' });
   } catch {
     /* ok */
   }

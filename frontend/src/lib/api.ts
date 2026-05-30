@@ -158,10 +158,13 @@ export interface KlineResponse {
 export interface SkillInfo {
   name: string;
   description: string;
+  category?: string;
+  enabled?: boolean;
 }
 
-export interface SkillsResponse {
+export interface SkillsDetailResponse {
   skills: SkillInfo[];
+  categories: { id: string; label: string }[];
 }
 
 // ==================== API Functions ====================
@@ -202,8 +205,44 @@ export async function setAgentMode(mode: ExecutionMode): Promise<{ mode: Executi
   });
 }
 
-export async function getSkills(): Promise<SkillsResponse> {
-  return request<SkillsResponse>('/agent/skills');
+export async function getSkills(): Promise<SkillsDetailResponse> {
+  return request<SkillsDetailResponse>('/agent/skills');
+}
+
+export async function getSkillsDetail(): Promise<SkillsDetailResponse> {
+  return request<SkillsDetailResponse>('/agent/skills/detail');
+}
+
+export interface SkillSourceResponse {
+  name: string;
+  source: string;
+  file: string;
+}
+
+export interface SkillCreateResponse {
+  status: string;
+  name: string;
+  file: string;
+  code: string;
+  message?: string;
+}
+
+export async function createSkill(description: string): Promise<SkillCreateResponse> {
+  return request<SkillCreateResponse>('/agent/skills/create', {
+    method: 'POST',
+    body: JSON.stringify({ description }),
+  });
+}
+
+export async function getSkillSource(name: string): Promise<SkillSourceResponse> {
+  return request<SkillSourceResponse>(`/agent/skills/${encodeURIComponent(name)}/source`);
+}
+
+export async function updateSkillSource(name: string, source: string): Promise<{ status: string; name: string }> {
+  return request<{ status: string; name: string }>(`/agent/skills/${encodeURIComponent(name)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ source }),
+  });
 }
 
 // ---- Trading ----
@@ -227,6 +266,29 @@ export async function getPortfolio(): Promise<PortfolioResponse> {
 
 export async function getOrders(): Promise<OrdersResponse> {
   return request<OrdersResponse>('/trading/orders');
+}
+
+export interface TradingStats {
+  cash: number;
+  positions_value: number;
+  total_value: number;
+  total_pnl: number;
+  total_pnl_pct: number;
+  position_count: number;
+  trade_count: number;
+  win_rate: number;
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  avg_win: number;
+  avg_loss: number;
+  profit_factor: number;
+  daily_pnl: { date: string; pnl: number; trades: number }[];
+  initial_cash: number;
+}
+
+export async function getTradingStats(): Promise<TradingStats> {
+  return request<TradingStats>('/trading/stats');
 }
 
 // ---- Harness ----
@@ -279,4 +341,302 @@ export async function getKline(
   return request<KlineResponse>(
     `/trading/market/kline?symbol=${encodeURIComponent(symbol)}&period=${period}&count=${count}`,
   );
+}
+
+// ---- Knowledge Base ----
+
+export interface KnowledgeDoc {
+  id: string;
+  title: string;
+  snippet?: string;
+  tags: string[];
+  category: string;
+  status: string;
+  score?: number;
+  source?: string;
+}
+
+export interface KnowledgeDetail extends KnowledgeDoc {
+  content: string;
+}
+
+export interface KnowledgeSearchResponse {
+  query: string;
+  results: KnowledgeDoc[];
+}
+
+export interface KnowledgeListResponse {
+  entries: KnowledgeDoc[];
+}
+
+export interface KnowledgeStats {
+  total: number;
+  promoted: number;
+  candidates: number;
+  tags: number;
+  categories: number;
+}
+
+export async function searchKnowledge(q: string, topK = 10): Promise<KnowledgeSearchResponse> {
+  return request<KnowledgeSearchResponse>(
+    `/agent/knowledge/search?q=${encodeURIComponent(q)}&top_k=${topK}`,
+  );
+}
+
+export async function getKnowledgeStats(): Promise<KnowledgeStats> {
+  return request<KnowledgeStats>('/agent/knowledge/stats');
+}
+
+export async function getKnowledgeCandidates(): Promise<{ candidates: KnowledgeDoc[] }> {
+  return request<{ candidates: KnowledgeDoc[] }>('/agent/knowledge/candidates');
+}
+
+export async function promoteKnowledge(id: string): Promise<{ id: string; promoted: boolean }> {
+  return request<{ id: string; promoted: boolean }>('/agent/knowledge/promote', {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+  });
+}
+
+export async function listKnowledge(): Promise<KnowledgeListResponse> {
+  return request<KnowledgeListResponse>('/agent/knowledge/list');
+}
+
+export async function getKnowledgeDetail(id: string): Promise<KnowledgeDetail> {
+  return request<KnowledgeDetail>(`/agent/knowledge/${encodeURIComponent(id)}`);
+}
+
+export async function createKnowledge(data: {
+  title: string;
+  content: string;
+  tags?: string[];
+  category?: string;
+  source?: string;
+}): Promise<{ id: string; created: boolean }> {
+  return request<{ id: string; created: boolean }>('/agent/knowledge/create', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteKnowledge(id: string): Promise<{ id: string; deleted: boolean }> {
+  return request<{ id: string; deleted: boolean }>(`/agent/knowledge/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+// ---- Providers ----
+
+export interface ProviderInfo {
+  id: string;
+  provider: string;
+  model: string;
+  enabled: boolean;
+}
+
+export interface ProvidersResponse {
+  providers: ProviderInfo[];
+  routing: Record<string, string>;
+}
+
+export async function getProviders(): Promise<ProvidersResponse> {
+  return request<ProvidersResponse>('/agent/providers');
+}
+
+// ---- Channels ----
+
+export interface ChannelTypeInfo {
+  label: string;
+  desc: string;
+  fields: string[];
+}
+
+export interface ChannelTypesResponse {
+  types: {
+    feeds: Record<string, ChannelTypeInfo>;
+    alerts: Record<string, ChannelTypeInfo>;
+    brokers: Record<string, ChannelTypeInfo>;
+  };
+}
+
+export interface ChannelConfigEntry {
+  enabled?: boolean;
+  webhook_url?: string;
+  initial_cash?: number;
+  poll_interval?: number;
+}
+
+export interface ChannelConfigResponse {
+  config: {
+    feeds: Record<string, ChannelConfigEntry>;
+    alerts: Record<string, ChannelConfigEntry>;
+    brokers: Record<string, ChannelConfigEntry>;
+  };
+}
+
+export async function getChannelTypes(): Promise<ChannelTypesResponse> {
+  return request<ChannelTypesResponse>('/agent/channels/types');
+}
+
+export async function getChannelsConfig(): Promise<ChannelConfigResponse> {
+  return request<ChannelConfigResponse>('/agent/channels/config');
+}
+
+export async function updateChannelConfig(
+  section: string,
+  name: string,
+  settings: Record<string, unknown>,
+): Promise<{ status: string; section: string; name: string }> {
+  return request<{ status: string; section: string; name: string }>(
+    '/agent/channels/config',
+    { method: 'PUT', body: JSON.stringify({ section, name, settings }) },
+  );
+}
+
+export async function testChannel(type: string, name: string) {
+  return request<{ status: string; channel?: string }>('/agent/channels/test', {
+    method: 'POST',
+    body: JSON.stringify({ type, name }),
+  });
+}
+
+// ---- Agent Roles ----
+
+export interface AgentRoleInfo {
+  name: string;
+  display_name: string;
+  description: string;
+  allowed_skills: string[];
+  allowed_channels: string[];
+  safety: string[];
+}
+
+export interface AgentRolesResponse {
+  roles: AgentRoleInfo[];
+}
+
+export async function getAgentRoles(): Promise<AgentRolesResponse> {
+  return request<AgentRolesResponse>('/agent/roles');
+}
+
+export async function setAgentRole(role: string): Promise<{ role: string }> {
+  return request<{ role: string }>('/agent/role', {
+    method: 'POST',
+    body: JSON.stringify({ role }),
+  });
+}
+
+// ---- Watchlist ----
+
+export interface WatchlistQuote {
+  price: number;
+  change_pct: number;
+  change: number;
+  name: string;
+}
+
+export interface WatchlistItem {
+  id: number;
+  symbol: string;
+  name: string;
+  note: string | null;
+  sort_order: number;
+  created_at: string | null;
+  quote: WatchlistQuote | null;
+}
+
+export interface WatchlistResponse {
+  items: WatchlistItem[];
+  count: number;
+}
+
+export async function getWatchlist(): Promise<WatchlistResponse> {
+  return request<WatchlistResponse>('/watchlist');
+}
+
+export async function addToWatchlist(symbol: string, name?: string, note?: string) {
+  return request<{ status: string; symbol: string; id?: number; message?: string }>(
+    '/watchlist',
+    { method: 'POST', body: JSON.stringify({ symbol, name, note }) },
+  );
+}
+
+export async function removeFromWatchlist(symbol: string) {
+  return request<{ status: string; symbol: string }>(`/watchlist/${encodeURIComponent(symbol)}`, {
+    method: 'DELETE',
+  });
+}
+
+// ---- Trade Journal ----
+
+export interface JournalEntry {
+  id: number;
+  journal_id: string;
+  symbol: string;
+  name: string | null;
+  direction: string;
+  entry_date: string | null;
+  entry_price: number | null;
+  entry_quantity: number | null;
+  entry_reason: string | null;
+  exit_date: string | null;
+  exit_price: number | null;
+  exit_reason: string | null;
+  pnl: number | null;
+  pnl_pct: number | null;
+  status: string;
+  review: string | null;
+  rating: number | null;
+  tags: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface JournalListResponse {
+  entries: JournalEntry[];
+  count: number;
+}
+
+export interface JournalStats {
+  total_trades: number;
+  open_positions: number;
+  win_count: number;
+  loss_count: number;
+  win_rate: number;
+  total_pnl: number;
+  avg_pnl: number;
+  avg_rating: number;
+  best_trade: number;
+  worst_trade: number;
+}
+
+export async function getJournal(status?: string, limit = 50): Promise<JournalListResponse> {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  params.set('limit', String(limit));
+  return request<JournalListResponse>(`/journal?${params.toString()}`);
+}
+
+export async function updateJournal(
+  journalId: string,
+  data: {
+    exit_price?: number;
+    exit_reason?: string;
+    review?: string;
+    rating?: number;
+    tags?: string;
+  },
+): Promise<JournalEntry> {
+  return request<JournalEntry>(`/journal/${journalId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteJournal(journalId: string) {
+  return request<{ status: string }>(`/journal/${journalId}`, { method: 'DELETE' });
+}
+
+export async function getJournalStats(): Promise<JournalStats> {
+  return request<JournalStats>('/journal/stats');
 }

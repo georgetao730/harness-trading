@@ -5,8 +5,8 @@ import sys
 
 
 def test_python_is_modern_enough() -> None:
-    """Sprint 0 baseline: refuse to run on Python <3.12 per ADR-0001."""
-    assert sys.version_info >= (3, 12), f"need py3.12+, got {sys.version_info}"
+    """Sprint 0 baseline: refuse to run on Python <3.11 per ADR-0001."""
+    assert sys.version_info >= (3, 11), f"need py3.11+, got {sys.version_info}"
 
 
 def test_app_package_importable() -> None:

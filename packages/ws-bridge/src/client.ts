@@ -9,7 +9,7 @@ import { type BridgeFrame, helloFrame, pingFrame, requestFrame, ulid } from './f
 export type { BridgeFrame };
 
 export interface BridgeClientOptions {
-  /** Gateway URL, default: ws://127.0.0.1:8765/v1 */
+  /** Gateway URL, default: ws://127.0.0.1:18766/v1 */
   url?: string;
   /** Auth token. If not provided, reads from ~/.harness-trading/auth.json */
   token?: string;
@@ -47,7 +47,7 @@ export class BridgeClient {
   private _closed = false;
 
   constructor(options: BridgeClientOptions = {}) {
-    this._url = options.url ?? 'ws://127.0.0.1:8765/v1';
+    this._url = options.url ?? 'ws://127.0.0.1:18766/v1';
     this._token = options.token ?? readToken() ?? '';
     this._client = options.client ?? 'cli';
     this._version = options.version ?? '0.1.0';

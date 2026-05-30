@@ -3,14 +3,18 @@
 import { AgentChatPage } from '@/components/agent/AgentChatPage';
 import { AgentPanel } from '@/components/agent/AgentPanel';
 import { ChannelsPage } from '@/components/harness/ChannelsPage';
+import { SkillsPage } from '@/components/skills/SkillsPage';
+import { DashboardKPI } from '@/components/dashboard/DashboardKPI';
 import { MarketOverview } from '@/components/charts/MarketOverview';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { TopBar } from '@/components/dashboard/TopBar';
 import { HarnessPanel } from '@/components/harness/HarnessPanel';
 import { SafetyCenterPage } from '@/components/harness/SafetyCenterPage';
+import { JournalPage } from '@/components/journal/JournalPage';
 import { KnowledgeBasePage } from '@/components/knowledge/KnowledgeBasePage';
 import { PortfolioPage } from '@/components/portfolio/PortfolioPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
+import { WatchlistPage } from '@/components/watchlist/WatchlistPage';
 import { WorkflowPage } from '@/components/workflow/WorkflowPage';
 import {
   type ExecutionMode,
@@ -38,7 +42,8 @@ function DashboardView({
       <div className="w-[380px] flex-shrink-0">
         <AgentPanel />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-y-auto">
+        <DashboardKPI />
         <MarketOverview />
       </div>
       <div className="w-[340px] flex-shrink-0">
@@ -142,6 +147,12 @@ export default function Home() {
             <ChannelsPage />
           </PageContainer>
         );
+      case 'skills':
+        return (
+          <PageContainer>
+            <SkillsPage />
+          </PageContainer>
+        );
       case 'portfolio':
         return (
           <PageContainer>
@@ -158,6 +169,18 @@ export default function Home() {
         return (
           <PageContainer>
             <KnowledgeBasePage />
+          </PageContainer>
+        );
+      case 'watchlist':
+        return (
+          <PageContainer>
+            <WatchlistPage />
+          </PageContainer>
+        );
+      case 'journal':
+        return (
+          <PageContainer>
+            <JournalPage />
           </PageContainer>
         );
       case 'settings':

@@ -31,6 +31,16 @@ async def lifespan(app: FastAPI):
 
     bootstrap_channels()
 
+    # Start feed streams as background tasks
+    from .channels.feed_runner import start_feed_streams
+
+    await start_feed_streams()
+
+    # Start scheduled tasks (morning briefing, closing summary, watchdog)
+    from .core.scheduler import start_scheduler
+
+    await start_scheduler()
+
     # Scan workflows/ directory and register workflows
     from .workflows.engine import workflow_registry
 
@@ -51,7 +61,27 @@ async def lifespan(app: FastAPI):
     k_count = garden.index_all()
     logger.info(f"Knowledge entries indexed: {k_count}")
 
+    # Initialize database (SQLite via aiosqlite)
+    from .db.database import init_db
+
+    await init_db()
+
     yield
+
+    # Shutdown feed streams
+    from .channels.feed_runner import stop_feed_streams
+
+    await stop_feed_streams()
+
+    # Shutdown scheduler
+    from .core.scheduler import stop_scheduler
+
+    await stop_scheduler()
+
+    # Shutdown database
+    from .db.database import close_db
+
+    await close_db()
 
     logger.info(f"Shutting down {settings.app_name}")
 
@@ -88,11 +118,13 @@ else:
     )
 
 # Register API routes
-from .api import agent, trading, harness  # noqa
+from .api import agent, trading, harness, watchlist, journal  # noqa
 
 app.include_router(agent.router)
 app.include_router(trading.router)
 app.include_router(harness.router)
+app.include_router(watchlist.router)
+app.include_router(journal.router)
 
 # Register Gateway WebSocket bridge (Node ↔ Python)
 from .gateway.server import router as gateway_router  # noqa

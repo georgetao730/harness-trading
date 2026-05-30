@@ -155,3 +155,10 @@ async def get_harness_config():
             "auto_reset": bool(cb_cfg.get("auto_reset", False)),
         },
     }
+
+
+@router.get("/events")
+async def get_safety_events():
+    """Get recent safety events log."""
+    from ..harness.pipeline import get_event_log
+    return {"events": get_event_log()}

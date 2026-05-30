@@ -2,7 +2,8 @@
 
 import type { ExecutionMode } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Bell, Shield, User } from 'lucide-react';
+import { useTheme } from '@/lib/ThemeProvider';
+import { AlertTriangle, Bell, Moon, Shield, Sun, User } from 'lucide-react';
 
 const modes: { id: ExecutionMode; label: string; desc: string; color: string }[] = [
   {
@@ -34,6 +35,7 @@ interface TopBarProps {
 
 export function TopBar({ mode, onModeChange, circuitBroken, onResetCircuit }: TopBarProps) {
   const currentMode = modes.find((m) => m.id === mode)!;
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="h-14 flex items-center justify-between px-6 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex-shrink-0">
@@ -86,6 +88,19 @@ export function TopBar({ mode, onModeChange, circuitBroken, onResetCircuit }: To
           />
           风控 {circuitBroken ? '已暂停' : '正常'}
         </div>
+
+        {/* 主题切换 */}
+        <button
+          onClick={toggleTheme}
+          className="p-1.5 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
+          title={theme === 'dark' ? '切换亮色模式' : '切换暗色模式'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-[var(--color-warning)]" />
+          ) : (
+            <Moon className="w-4 h-4 text-[var(--color-text-secondary)]" />
+          )}
+        </button>
 
         {/* 通知 */}
         <button className="relative p-1.5 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors">
