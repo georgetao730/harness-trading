@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="screenshots/demo.gif" alt="Harness Trading Demo" width="800" />
+  <img src="screenshots/demo.gif" alt="Harness Trading Demo" />
 </p>
 
 <p align="center">
@@ -61,22 +61,13 @@
 
 ### 📸 功能一览
 
-<p align="center">
-  <img src="screenshots/preview.png" alt="Harness Trading Screenshots" width="100%" />
-</p>
-<details>
-<summary>点击展开各页面详情</summary>
-
-| 页面 | 功能 |
-|------|------|
-| 仪表盘 | 实时 KPI（总资产/盈亏/胜率/盈亏比） + 行情概览 |
-| AI 对话 | 多轮对话、Agent 角色切换、RAG 知识增强 |
-| 知识库 | BM25 搜索、分类浏览、自然语言上传、AI 自主学习 |
-| Skills 管理 | 可视化卡片、LLM 自然语言创建、在线编辑源码 |
-| 通道管理 | 飞书/钉钉/企微 Webhook 配置、一键测试、开关控制 |
-| 安全中心 | 熔断器、执行模式、校验链日志、风控规则配置 |
-
-</details>
+| <img src="screenshots/feature-dashboard.png" width="400" alt="仪表盘" /> | <img src="screenshots/feature-chat.png" width="400" alt="AI 对话" /> |
+|:--:|:--:|
+| **仪表盘** — 实时 KPI · 行情概览 | **AI 对话** — 角色切换 · RAG 增强 |
+| <img src="screenshots/feature-knowledge.png" width="400" alt="知识库" /> | <img src="screenshots/feature-skills.png" width="400" alt="Skills" /> |
+| **知识库** — BM25 搜索 · AI 自主学习 | **Skills 管理** — 自然语言创建 · 在线编辑 |
+| <img src="screenshots/feature-channels.png" width="400" alt="通道管理" /> | <img src="screenshots/feature-safety.png" width="400" alt="安全中心" /> |
+| **通道管理** — 飞书·钉钉·企微 · 一键测试 | **安全中心** — 熔断器 · 风控链 · 执行模式 |
 
 ### 🤖 AI Agent 平台
 
