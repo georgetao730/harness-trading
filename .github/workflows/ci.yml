@@ -54,3 +54,7 @@ jobs:
       - name: Lint
         working-directory: frontend
         run: npx next lint || true
+
+      - name: Build check
+        working-directory: frontend
+        run: npx next build --webpack

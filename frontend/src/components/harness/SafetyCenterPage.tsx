@@ -22,8 +22,6 @@ interface SafetyEvent {
   message: string;
 }
 
-const eventLogs0: SafetyEvent[] = [];
-
 export function SafetyCenterPage() {
   const [activeSection, setActiveSection] = useState<'rules' | 'controls' | 'logs'>('rules');
   const [config, setConfig] = useState<HarnessConfig | null>(null);

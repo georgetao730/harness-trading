@@ -97,13 +97,18 @@ DeepSeek / OpenAI / Claude / Moonshot / Qwen / GLM / 本地 Ollama，按任务�
 - Python 3.12+ 和 Node 18+
 - 一个 LLM API Key（推荐 [DeepSeek](https://platform.deepseek.com/)，便宜好用）
 
-### 3 步启动
+### 一键启动
 
 ```bash
-git clone git@github.com:your-org/harness-trading.git && cd harness-trading
+git clone git@github.com:georgetao730/harness-trading.git && cd harness-trading
 cp .env.example .env
 # 编辑 .env，填入 DEEPSEEK_API_KEY=sk-...
+./start.sh
 ```
+
+打开 `http://localhost:3000`，开始使用。
+
+### 手动启动
 
 ```bash
 # 终端 1：启动后端
@@ -113,8 +118,6 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 18766 --reload
 # 终端 2：启动前端
 cd frontend && npm install && npm run dev -- --webpack -p 3000
 ```
-
-打开 `http://localhost:3000`，开始使用。
 
 ### Docker 启动
 
