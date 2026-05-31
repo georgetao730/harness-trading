@@ -5,7 +5,7 @@
  * Activated automatically when the backend API is unreachable.
  */
 
-import type { KlineBar, MarketIndex, OrderApproval, PortfolioPosition, PortfolioSummary } from './api';
+import type { MarketIndex, PortfolioPosition, PortfolioSummary } from './api';
 
 // ── Market Indices ──
 
@@ -15,48 +15,6 @@ export const DEMO_INDICES: MarketIndex[] = [
   { name: '创业板指', code: '399006.SZ', price: 2156.73, change_pct: 1.15, volume: 0 },
   { name: '科创50', code: '000688.SH', price: 985.42, change_pct: 2.03, volume: 0 },
 ];
-
-// ── K-line Data (60 days for 上证指数) ──
-
-const BASE_DATE = new Date('2026-03-01');
-const BASE_PRICE = 3150;
-const DEMO_KLINE_DAYS = 60;
-
-function generateDemoKline(symbol: string): KlineBar[] {
-  const bars: KlineBar[] = [];
-  let price = symbol === '000001.SH' ? BASE_PRICE : symbol === '399001.SZ' ? 10200 : 2000;
-  const volatility = 0.015;
-
-  for (let i = 0; i < DEMO_KLINE_DAYS; i++) {
-    const d = new Date(BASE_DATE);
-    d.setDate(d.getDate() + i);
-
-    // Skip weekends
-    if (d.getDay() === 0 || d.getDay() === 6) continue;
-
-    const dateStr = d.toISOString().slice(0, 10);
-    const change = (Math.random() - 0.48) * volatility * price * 0.5;
-    const open = price;
-    const close = price + change;
-    const high = Math.max(open, close) + Math.random() * volatility * price * 0.3;
-    const low = Math.min(open, close) - Math.random() * volatility * price * 0.3;
-    const volume = Math.floor(Math.random() * 50000000 + 10000000);
-
-    bars.push({ date: dateStr, open: +open.toFixed(2), high: +high.toFixed(2), low: +low.toFixed(2), close: +close.toFixed(2), volume });
-    price = close;
-  }
-
-  return bars;
-}
-
-export const DEMO_KLINE_CACHE: Record<string, KlineBar[]> = {};
-
-export function getDemoKline(symbol: string): KlineBar[] {
-  if (!DEMO_KLINE_CACHE[symbol]) {
-    DEMO_KLINE_CACHE[symbol] = generateDemoKline(symbol);
-  }
-  return DEMO_KLINE_CACHE[symbol];
-}
 
 // ── Portfolio ──
 
@@ -176,7 +134,7 @@ export const DEMO_ROLES = {
   active: 'trade_operator',
 };
 
-// ── Crypto / Binance Data ──
+// ── Crypto Price Data (for market overview bar, not K-line) ──
 
 export const DEMO_CRYPTO_PRICES = [
   { symbol: 'BTCUSDT', name: 'Bitcoin', price: 87432.50, change: 1240.30, change_pct: 1.44, high: 88100.00, low: 85800.00, volume: 45600, quote_volume: 3987120000 },
@@ -190,48 +148,3 @@ export const DEMO_CRYPTO_PRICES = [
   { symbol: 'DOTUSDT', name: 'Polkadot', price: 7.85, change: -0.15, change_pct: -1.87, high: 8.05, low: 7.72, volume: 320000, quote_volume: 2512000 },
   { symbol: 'LINKUSDT', name: 'Chainlink', price: 16.80, change: -0.30, change_pct: -1.75, high: 17.20, low: 16.50, volume: 240000, quote_volume: 4032000 },
 ];
-
-function generateCryptoKline(symbol: string): KlineBar[] {
-  const bars: KlineBar[] = [];
-  const basePrices: Record<string, number> = {
-    BTCUSDT: 83000, ETHUSDT: 3200, BNBUSDT: 680, SOLUSDT: 155,
-    XRPUSDT: 0.50, ADAUSDT: 0.58, DOGEUSDT: 0.17,
-    AVAXUSDT: 36, DOTUSDT: 7.5, LINKUSDT: 16,
-  };
-  let price = basePrices[symbol] || 100;
-  const volatility = 0.025;
-  const days = 60;
-
-  for (let i = 0; i < days; i++) {
-    const d = new Date('2026-04-01');
-    d.setDate(d.getDate() + i);
-    if (d.getDay() === 0 || d.getDay() === 6) continue;
-
-    const dateStr = d.toISOString().slice(0, 10);
-    const close = price * (1 + (Math.random() - 0.48) * volatility);
-    const open = price;
-    const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-    const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-    const volume = Math.floor(Math.random() * 100000 + 10000);
-
-    bars.push({
-      date: dateStr,
-      open: +open.toFixed(symbol.includes('USDT') && basePrices[symbol] < 1 ? 6 : 2),
-      high: +high.toFixed(symbol.includes('USDT') && basePrices[symbol] < 1 ? 6 : 2),
-      low: +low.toFixed(symbol.includes('USDT') && basePrices[symbol] < 1 ? 6 : 2),
-      close: +close.toFixed(symbol.includes('USDT') && basePrices[symbol] < 1 ? 6 : 2),
-      volume,
-    });
-    price = close;
-  }
-  return bars;
-}
-
-export const DEMO_CRYPTO_KLINE_CACHE: Record<string, KlineBar[]> = {};
-
-export function getDemoCryptoKline(symbol: string): KlineBar[] {
-  if (!DEMO_CRYPTO_KLINE_CACHE[symbol]) {
-    DEMO_CRYPTO_KLINE_CACHE[symbol] = generateCryptoKline(symbol);
-  }
-  return DEMO_CRYPTO_KLINE_CACHE[symbol];
-}

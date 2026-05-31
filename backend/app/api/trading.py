@@ -429,28 +429,3 @@ async def get_crypto_prices(
         })
 
     return {"quotes": quotes, "count": len(quotes)}
-
-
-@router.get("/crypto/kline")
-async def get_crypto_kline(
-    symbol: str = Query(..., description="交易对，如 BTCUSDT"),
-    interval: str = Query("1d", description="K线周期: 1m/5m/15m/1h/4h/1d/1w/1M"),
-    limit: int = Query(60, description="返回条数"),
-):
-    """Get Binance candlestick/kline data."""
-    bars = await binance_service.get_klines(symbol, interval, limit)
-    return {
-        "symbol": symbol,
-        "interval": interval,
-        "data": [
-            {
-                "date": bar.date,
-                "open": bar.open,
-                "high": bar.high,
-                "low": bar.low,
-                "close": bar.close,
-                "volume": bar.volume,
-            }
-            for bar in bars
-        ],
-    }

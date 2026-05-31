@@ -13,8 +13,6 @@ import {
   DEMO_ROLES,
   DEMO_SAFETY_EVENTS,
   DEMO_SKILLS,
-  getDemoKline,
-  getDemoCryptoKline,
 } from './demo-data';
 
 const API_BASE = '/api';
@@ -156,23 +154,6 @@ export interface QuoteResponse {
   market: string;
   error?: string;
 }
-
-export interface KlineBar {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-export interface KlineResponse {
-  symbol: string;
-  period: string;
-  data: KlineBar[];
-}
-
-export interface SkillInfo {
   name: string;
   description: string;
   category?: string;
@@ -370,17 +351,6 @@ export async function getMarketIndices(): Promise<IndicesResponse> {
 
 export async function getStockQuote(symbol: string): Promise<QuoteResponse> {
   return request<QuoteResponse>(`/trading/market/quote?symbol=${encodeURIComponent(symbol)}`);
-}
-
-export async function getKline(
-  symbol: string,
-  period = 'daily',
-  count = 30,
-): Promise<KlineResponse> {
-  return requestOrDemo<KlineResponse>(
-    `/trading/market/kline?symbol=${encodeURIComponent(symbol)}&period=${period}&count=${count}`,
-    { symbol, period, data: getDemoKline(symbol) },
-  );
 }
 
 // ---- Knowledge Base ----
@@ -707,20 +677,5 @@ export async function getCryptoPrices(symbols?: string): Promise<{ quotes: Crypt
   return requestOrDemo<{ quotes: CryptoQuote[]; count: number }>(
     symbols ? `/trading/crypto/prices?symbols=${symbols}` : '/trading/crypto/prices',
     { quotes: DEMO_CRYPTO_PRICES, count: DEMO_CRYPTO_PRICES.length },
-  );
-}
-
-export async function getCryptoKline(
-  symbol: string,
-  interval = '1d',
-  limit = 60,
-): Promise<KlineResponse> {
-  return requestOrDemo<KlineResponse>(
-    `/trading/crypto/kline?symbol=${symbol}&interval=${interval}&limit=${limit}`,
-    {
-      symbol,
-      period: interval,
-      data: getDemoCryptoKline(symbol).slice(-limit),
-    },
   );
 }

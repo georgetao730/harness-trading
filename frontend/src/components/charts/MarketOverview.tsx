@@ -1,56 +1,40 @@
 'use client';
 
-import { getCryptoKline, getCryptoPrices, getKline, getMarketIndices, getPortfolio } from '@/lib/api';
-import type { CryptoQuote, KlineBar, MarketIndex, PortfolioPosition, PortfolioSummary } from '@/lib/api';
+import { getCryptoPrices, getMarketIndices, getPortfolio } from '@/lib/api';
+import type { CryptoQuote, MarketIndex, PortfolioPosition, PortfolioSummary } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
   Activity,
-  BarChart3,
   Bitcoin,
   DollarSign,
-  LineChart,
   PieChart,
   RefreshCw,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import { CandlestickChart } from './CandlestickChart';
+import { TradingViewChart } from './TradingViewChart';
 
 export function MarketOverview() {
   const [indices, setIndices] = useState<MarketIndex[]>([]);
-  const [klineData, setKlineData] = useState<KlineBar[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [positions, setPositions] = useState<PortfolioPosition[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedIndex, setSelectedIndex] = useState('上证指数');
-  const [chartType, setChartType] = useState<'area' | 'candle'>('candle');
+  const [selectedIndex, setSelectedIndex] = useState('000001.SH');
   const [marketType, setMarketType] = useState<'stock' | 'crypto'>('stock');
 
   // Crypto state
   const [cryptoPrices, setCryptoPrices] = useState<CryptoQuote[]>([]);
-  const [cryptoKline, setCryptoKline] = useState<KlineBar[]>([]);
   const [selectedCrypto, setSelectedCrypto] = useState('BTCUSDT');
 
   const fetchData = useCallback(async () => {
     try {
-      const [indicesRes, klineRes, portfolioRes, cryptoRes] = await Promise.all([
+      const [indicesRes, portfolioRes, cryptoRes] = await Promise.all([
         getMarketIndices(),
-        getKline('000001.SH', 'daily', 30),
         getPortfolio(),
         getCryptoPrices(),
       ]);
       setIndices(indicesRes.indices);
-      setKlineData(klineRes.data);
       setSummary(portfolioRes.summary);
       setPositions(portfolioRes.positions);
       setCryptoPrices(cryptoRes.quotes);
@@ -63,43 +47,21 @@ export function MarketOverview() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // 30s refresh
+    const interval = setInterval(fetchData, 60000); // 60s refresh
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const switchIndex = async (name: string) => {
-    setSelectedIndex(name);
-    const idx = indices.find((i) => i.name === name);
-    if (idx) {
-      try {
-        const kline = await getKline(idx.code, 'daily', 30);
-        setKlineData(kline.data);
-      } catch {}
-    }
+  const switchIndex = (code: string) => {
+    setSelectedIndex(code);
   };
 
-  const switchMarket = async (type: 'stock' | 'crypto') => {
+  const switchMarket = (type: 'stock' | 'crypto') => {
     setMarketType(type);
-    if (type === 'crypto') {
-      try {
-        const kline = await getCryptoKline(selectedCrypto, '1d', 60);
-        setCryptoKline(kline.data);
-      } catch {}
-    }
   };
 
-  const switchCrypto = async (symbol: string) => {
+  const switchCrypto = (symbol: string) => {
     setSelectedCrypto(symbol);
-    try {
-      const kline = await getCryptoKline(symbol, '1d', 60);
-      setCryptoKline(kline.data);
-    } catch {}
   };
-
-  const chartData = klineData.map((bar) => ({
-    date: bar.date.slice(5), // "MM-DD"
-    price: bar.close,
-  }));
 
   const totalValue = summary?.total_value || 0;
   const totalPnl = summary?.total_pnl || 0;
@@ -173,10 +135,10 @@ export function MarketOverview() {
           {indices.map((idx) => (
             <button
               key={idx.code}
-              onClick={() => switchIndex(idx.name)}
+              onClick={() => switchIndex(idx.code)}
               className={cn(
                 'flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all',
-                selectedIndex === idx.name
+                selectedIndex === idx.code
                   ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5'
                   : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]/20',
               )}
@@ -233,41 +195,18 @@ export function MarketOverview() {
         </div>
       )}
 
-      {/* 图表区域 */}
+      {/* 图表区域 — TradingView 专业K线 */}
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold">
               {marketType === 'crypto'
                 ? (cryptoPrices.find((c) => c.symbol === selectedCrypto)?.name || selectedCrypto)
-                : selectedIndex}
+                : (indices.find((i) => i.code === selectedIndex)?.name || selectedIndex)}
             </h3>
-            <div className="flex rounded-md bg-[var(--color-background)] border border-[var(--color-border)] overflow-hidden">
-              <button
-                onClick={() => setChartType('area')}
-                className={cn(
-                  'px-2 py-1 text-[10px] flex items-center gap-1 transition-colors',
-                  chartType === 'area'
-                    ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
-                )}
-              >
-                <LineChart className="w-3 h-3" />
-                走势
-              </button>
-              <button
-                onClick={() => setChartType('candle')}
-                className={cn(
-                  'px-2 py-1 text-[10px] flex items-center gap-1 transition-colors',
-                  chartType === 'candle'
-                    ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
-                )}
-              >
-                <BarChart3 className="w-3 h-3" />
-                K线
-              </button>
-            </div>
+            <span className="text-[10px] text-[var(--color-text-muted)] bg-[var(--color-background)] px-2 py-0.5 rounded">
+              TradingView
+            </span>
           </div>
           <button
             onClick={fetchData}
@@ -277,52 +216,10 @@ export function MarketOverview() {
             <RefreshCw className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
           </button>
         </div>
-        {chartType === 'candle' ? (
-          <CandlestickChart data={marketType === 'crypto' ? cryptoKline : klineData} height={400} />
-        ) : chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3d" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: '#64748b' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#64748b' }}
-                axisLine={false}
-                tickLine={false}
-                domain={['auto', 'auto']}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#14141f',
-                  border: '1px solid #2a2a3d',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="price"
-                stroke="#6366f1"
-                strokeWidth={1.5}
-                fill="url(#priceGradient)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-[400px] flex items-center justify-center text-xs text-[var(--color-text-muted)]">
-            {loading ? '加载中...' : '暂无数据'}
-          </div>
-        )}
+        <TradingViewChart
+          symbol={marketType === 'crypto' ? selectedCrypto : selectedIndex}
+          height={450}
+        />
       </div>
 
       {/* 持仓列表 */}
