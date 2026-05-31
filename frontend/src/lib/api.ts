@@ -154,6 +154,8 @@ export interface QuoteResponse {
   market: string;
   error?: string;
 }
+
+export interface SkillInfo {
   name: string;
   description: string;
   category?: string;
