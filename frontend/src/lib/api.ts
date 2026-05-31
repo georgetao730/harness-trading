@@ -3,6 +3,7 @@
 import {
   DEMO_CHANNELS,
   DEMO_CLOSED_TRADES,
+  DEMO_CRYPTO_PRICES,
   DEMO_HARNESS_CONFIG,
   DEMO_HARNESS_STATUS,
   DEMO_INDICES,
@@ -13,6 +14,7 @@ import {
   DEMO_SAFETY_EVENTS,
   DEMO_SKILLS,
   getDemoKline,
+  getDemoCryptoKline,
 } from './demo-data';
 
 const API_BASE = '/api';
@@ -685,4 +687,40 @@ export async function deleteJournal(journalId: string) {
 
 export async function getJournalStats(): Promise<JournalStats> {
   return request<JournalStats>('/journal/stats');
+}
+
+// ==================== Crypto / Binance API ====================
+
+export interface CryptoQuote {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  change_pct: number;
+  high: number;
+  low: number;
+  volume: number;
+  quote_volume: number;
+}
+
+export async function getCryptoPrices(symbols?: string): Promise<{ quotes: CryptoQuote[]; count: number }> {
+  return requestOrDemo<{ quotes: CryptoQuote[]; count: number }>(
+    symbols ? `/trading/crypto/prices?symbols=${symbols}` : '/trading/crypto/prices',
+    { quotes: DEMO_CRYPTO_PRICES, count: DEMO_CRYPTO_PRICES.length },
+  );
+}
+
+export async function getCryptoKline(
+  symbol: string,
+  interval = '1d',
+  limit = 60,
+): Promise<KlineResponse> {
+  return requestOrDemo<KlineResponse>(
+    `/trading/crypto/kline?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+    {
+      symbol,
+      period: interval,
+      data: getDemoCryptoKline(symbol).slice(-limit),
+    },
+  );
 }

@@ -157,7 +157,7 @@ harness-trading/
 
 ## Roadmap
 
-**已完成** ✅ · Skills 插件 · 安全护栏 · 模拟交易 · 多模型路由 · Web Dashboard · 工作流引擎 · Agent 角色 · 知识库 RAG · 渠道管理（飞书/钉钉/企微） · 交易日志 · 自选股 · Eval 评估 · 定时任务调度 · 一键启动脚本 · **K线图（TradingView 渲染）** · **Vercel 在线 Demo**
+**已完成** ✅ · Skills 插件 · 安全护栏 · 模拟交易 · 多模型路由 · Web Dashboard · 工作流引擎 · Agent 角色 · 知识库 RAG · 渠道管理（飞书/钉钉/企微） · 交易日志 · 自选股 · Eval 评估 · 定时任务调度 · 一键启动脚本 · **K线图（TradingView 渲染）** · **Vercel 在线 Demo** · **Binance 加密货币（行情 + 模拟交易）**
 
 **进行中** 🟡 · 真实券商适配器 · WebSocket 实时行情推送 · LLM 流式输出
 

@@ -10,10 +10,11 @@ from loguru import logger
 
 from .builtin.dingtalk_alert import DingTalkAlert
 from .builtin.eastmoney_feed import EastMoneyFeed
+from .builtin.binance_feed import BinanceFeed
 from .builtin.feishu_alert import FeishuAlert
 from .builtin.wecom_alert import WeComAlert
 from .paper_broker import PaperBroker
-from ..execution.brokers import PaperBrokerAdapter, EastMoneyBrokerAdapter
+from ..execution.brokers import PaperBrokerAdapter, EastMoneyBrokerAdapter, BinanceBrokerAdapter
 from .registry import channel_registry
 
 
@@ -43,6 +44,11 @@ def _bootstrap_feeds(config: dict[str, Any]) -> int:
         if name == "eastmoney":
             interval = float(cfg.get("poll_interval", 5.0))
             channel = EastMoneyFeed(poll_interval=interval)
+            channel_registry.register_feed(channel)
+            count += 1
+        elif name == "binance":
+            interval = float(cfg.get("poll_interval", 10.0))
+            channel = BinanceFeed(poll_interval=interval)
             channel_registry.register_feed(channel)
             count += 1
         else:
@@ -112,6 +118,12 @@ def _bootstrap_brokers(config: dict[str, Any]) -> int:
             channel_registry.register_broker(adapter)
             count += 1
             logger.info(f"Registered EastMoney broker (simulated, cash={cash:,.0f})")
+        elif name == "binance":
+            cash = float(cfg.get("initial_cash", 100_000.0))
+            adapter = BinanceBrokerAdapter(initial_cash=cash)
+            channel_registry.register_broker(adapter)
+            count += 1
+            logger.info(f"Registered Binance broker (paper, USDT={cash:,.0f})")
         else:
             logger.warning(f"Unknown broker channel: {name}")
     return count

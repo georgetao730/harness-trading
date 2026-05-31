@@ -1,12 +1,12 @@
 'use client';
 
-import { getKline, getMarketIndices, getPortfolio } from '@/lib/api';
-import type { KlineBar, MarketIndex, PortfolioPosition, PortfolioSummary } from '@/lib/api';
+import { getCryptoKline, getCryptoPrices, getKline, getMarketIndices, getPortfolio } from '@/lib/api';
+import type { CryptoQuote, KlineBar, MarketIndex, PortfolioPosition, PortfolioSummary } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
   Activity,
   BarChart3,
-  CandlestickChartIcon,
+  Bitcoin,
   DollarSign,
   LineChart,
   PieChart,
@@ -34,18 +34,26 @@ export function MarketOverview() {
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState('上证指数');
   const [chartType, setChartType] = useState<'area' | 'candle'>('candle');
+  const [marketType, setMarketType] = useState<'stock' | 'crypto'>('stock');
+
+  // Crypto state
+  const [cryptoPrices, setCryptoPrices] = useState<CryptoQuote[]>([]);
+  const [cryptoKline, setCryptoKline] = useState<KlineBar[]>([]);
+  const [selectedCrypto, setSelectedCrypto] = useState('BTCUSDT');
 
   const fetchData = useCallback(async () => {
     try {
-      const [indicesRes, klineRes, portfolioRes] = await Promise.all([
+      const [indicesRes, klineRes, portfolioRes, cryptoRes] = await Promise.all([
         getMarketIndices(),
         getKline('000001.SH', 'daily', 30),
         getPortfolio(),
+        getCryptoPrices(),
       ]);
       setIndices(indicesRes.indices);
       setKlineData(klineRes.data);
       setSummary(portfolioRes.summary);
       setPositions(portfolioRes.positions);
+      setCryptoPrices(cryptoRes.quotes);
     } catch {
       // Backend may not be available
     } finally {
@@ -68,6 +76,24 @@ export function MarketOverview() {
         setKlineData(kline.data);
       } catch {}
     }
+  };
+
+  const switchMarket = async (type: 'stock' | 'crypto') => {
+    setMarketType(type);
+    if (type === 'crypto') {
+      try {
+        const kline = await getCryptoKline(selectedCrypto, '1d', 60);
+        setCryptoKline(kline.data);
+      } catch {}
+    }
+  };
+
+  const switchCrypto = async (symbol: string) => {
+    setSelectedCrypto(symbol);
+    try {
+      const kline = await getCryptoKline(symbol, '1d', 60);
+      setCryptoKline(kline.data);
+    } catch {}
   };
 
   const chartData = klineData.map((bar) => ({
@@ -113,8 +139,36 @@ export function MarketOverview() {
         />
       </div>
 
+      {/* 市场类型切换 */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => switchMarket('stock')}
+          className={cn(
+            'px-3 py-1.5 text-xs rounded-lg border transition-all flex items-center gap-1.5',
+            marketType === 'stock'
+              ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5 text-[var(--color-primary)]'
+              : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
+          )}
+        >
+          <TrendingUp className="w-3.5 h-3.5" />
+          A股
+        </button>
+        <button
+          onClick={() => switchMarket('crypto')}
+          className={cn(
+            'px-3 py-1.5 text-xs rounded-lg border transition-all flex items-center gap-1.5',
+            marketType === 'crypto'
+              ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5 text-[var(--color-primary)]'
+              : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
+          )}
+        >
+          <Bitcoin className="w-3.5 h-3.5" />
+          加密货币
+        </button>
+      </div>
+
       {/* 指数行情条 */}
-      {indices.length > 0 && (
+      {marketType === 'stock' && indices.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {indices.map((idx) => (
             <button
@@ -145,11 +199,49 @@ export function MarketOverview() {
         </div>
       )}
 
+      {/* 加密行情条 */}
+      {marketType === 'crypto' && cryptoPrices.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {cryptoPrices.map((coin) => (
+            <button
+              key={coin.symbol}
+              onClick={() => switchCrypto(coin.symbol)}
+              className={cn(
+                'flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all',
+                selectedCrypto === coin.symbol
+                  ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]/20',
+              )}
+            >
+              <span className="font-medium">{coin.name}</span>
+              <span className="tabular-nums">
+                {coin.price < 1 ? `$${coin.price.toFixed(4)}` : `$${coin.price.toFixed(0)}`}
+              </span>
+              <span
+                className={cn(
+                  'text-[10px] tabular-nums',
+                  coin.change_pct >= 0
+                    ? 'text-[var(--color-success)]'
+                    : 'text-[var(--color-danger)]',
+                )}
+              >
+                {coin.change_pct >= 0 ? '+' : ''}
+                {coin.change_pct.toFixed(2)}%
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* 图表区域 */}
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold">{selectedIndex}</h3>
+            <h3 className="text-sm font-semibold">
+              {marketType === 'crypto'
+                ? (cryptoPrices.find((c) => c.symbol === selectedCrypto)?.name || selectedCrypto)
+                : selectedIndex}
+            </h3>
             <div className="flex rounded-md bg-[var(--color-background)] border border-[var(--color-border)] overflow-hidden">
               <button
                 onClick={() => setChartType('area')}
@@ -186,7 +278,7 @@ export function MarketOverview() {
           </button>
         </div>
         {chartType === 'candle' ? (
-          <CandlestickChart data={klineData} height={400} />
+          <CandlestickChart data={marketType === 'crypto' ? cryptoKline : klineData} height={400} />
         ) : chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={400}>
             <AreaChart data={chartData}>

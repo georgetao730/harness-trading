@@ -6,11 +6,17 @@ alerts:
   wecom:
     enabled: false
 brokers:
+  binance:
+    enabled: true
+    initial_cash: 100000.0
   eastmoney:
     enabled: false
   paper:
     enabled: true
     initial_cash: 1000000.0
 feeds:
+  binance:
+    enabled: true
+    poll_interval: 10.0
   eastmoney:
     enabled: true

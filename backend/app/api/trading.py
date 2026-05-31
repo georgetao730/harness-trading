@@ -7,6 +7,7 @@ from ..harness.engine import OrderIntent
 from ..harness.pipeline import harness_pipeline
 from ..execution.paper_trading import paper_engine
 from ..services.market_data import market_service
+from ..services.binance_service import binance_service, DEFAULT_CRYPTO_PAIRS, CRYPTO_NAMES
 
 router = APIRouter(prefix="/api/trading", tags=["trading"])
 
@@ -392,3 +393,64 @@ async def _sync_journal(intent) -> None:
                     db.add(entry)
     except Exception as e:
         logger.warning(f"Journal sync failed: {e}")
+
+
+# ==================== Crypto / Binance Endpoints ====================
+
+@router.get("/crypto/prices")
+async def get_crypto_prices(
+    symbols: str | None = Query(None, description="逗号分隔的交易对，如 BTCUSDT,ETHUSDT"),
+):
+    """Get real-time crypto prices from Binance.
+
+    Defaults to top 10 USDT pairs.
+    """
+    if symbols:
+        symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    else:
+        symbol_list = list(DEFAULT_CRYPTO_PAIRS)
+
+    data = await binance_service.get_24hr_batch(symbol_list)
+    quotes = []
+    for sym in symbol_list:
+        item = data.get(sym)
+        if item is None:
+            continue
+        quotes.append({
+            "symbol": sym,
+            "name": CRYPTO_NAMES.get(sym, sym),
+            "price": item["price"],
+            "change": item["change"],
+            "change_pct": item["change_pct"],
+            "high": item["high"],
+            "low": item["low"],
+            "volume": item["volume"],
+            "quote_volume": item["quote_volume"],
+        })
+
+    return {"quotes": quotes, "count": len(quotes)}
+
+
+@router.get("/crypto/kline")
+async def get_crypto_kline(
+    symbol: str = Query(..., description="交易对，如 BTCUSDT"),
+    interval: str = Query("1d", description="K线周期: 1m/5m/15m/1h/4h/1d/1w/1M"),
+    limit: int = Query(60, description="返回条数"),
+):
+    """Get Binance candlestick/kline data."""
+    bars = await binance_service.get_klines(symbol, interval, limit)
+    return {
+        "symbol": symbol,
+        "interval": interval,
+        "data": [
+            {
+                "date": bar.date,
+                "open": bar.open,
+                "high": bar.high,
+                "low": bar.low,
+                "close": bar.close,
+                "volume": bar.volume,
+            }
+            for bar in bars
+        ],
+    }
