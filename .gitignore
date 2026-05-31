@@ -44,3 +44,4 @@ logs/
 
 # claude
 .claude/
+.vercel-tmp/

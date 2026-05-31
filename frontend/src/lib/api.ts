@@ -1,5 +1,20 @@
 'use client';
 
+import {
+  DEMO_CHANNELS,
+  DEMO_CLOSED_TRADES,
+  DEMO_HARNESS_CONFIG,
+  DEMO_HARNESS_STATUS,
+  DEMO_INDICES,
+  DEMO_KNOWLEDGE,
+  DEMO_PORTFOLIO_SUMMARY,
+  DEMO_POSITIONS,
+  DEMO_ROLES,
+  DEMO_SAFETY_EVENTS,
+  DEMO_SKILLS,
+  getDemoKline,
+} from './demo-data';
+
 const API_BASE = '/api';
 
 // ==================== Types ====================
@@ -169,6 +184,11 @@ export interface SkillsDetailResponse {
 
 // ==================== API Functions ====================
 
+let _backendOnline = true;
+export function isBackendOnline(): boolean {
+  return _backendOnline;
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -178,7 +198,19 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const text = await res.text();
     throw new Error(`API Error ${res.status}: ${text}`);
   }
+  _backendOnline = true;
   return res.json();
+}
+
+/** Try real API, fall back to demo data on error. */
+async function requestOrDemo<T>(url: string, demo: T, options?: RequestInit): Promise<T> {
+  try {
+    const result = await request<T>(url, options);
+    return result;
+  } catch {
+    _backendOnline = false;
+    return demo;
+  }
 }
 
 // ---- Health ----
@@ -210,7 +242,7 @@ export async function getSkills(): Promise<SkillsDetailResponse> {
 }
 
 export async function getSkillsDetail(): Promise<SkillsDetailResponse> {
-  return request<SkillsDetailResponse>('/agent/skills/detail');
+  return requestOrDemo<SkillsDetailResponse>('/agent/skills/detail', DEMO_SKILLS);
 }
 
 export interface SkillSourceResponse {
@@ -261,11 +293,16 @@ export async function placeOrder(data: {
 }
 
 export async function getPortfolio(): Promise<PortfolioResponse> {
-  return request<PortfolioResponse>('/trading/portfolio');
+  return requestOrDemo<PortfolioResponse>('/trading/portfolio', {
+    summary: DEMO_PORTFOLIO_SUMMARY,
+    positions: DEMO_POSITIONS,
+  });
 }
 
 export async function getOrders(): Promise<OrdersResponse> {
-  return request<OrdersResponse>('/trading/orders');
+  return requestOrDemo<OrdersResponse>('/trading/orders', {
+    orders: DEMO_CLOSED_TRADES,
+  });
 }
 
 export interface TradingStats {
@@ -294,7 +331,7 @@ export async function getTradingStats(): Promise<TradingStats> {
 // ---- Harness ----
 
 export async function getHarnessStatus(): Promise<HarnessStatus> {
-  return request<HarnessStatus>('/harness/status');
+  return requestOrDemo<HarnessStatus>('/harness/status', DEMO_HARNESS_STATUS);
 }
 
 export async function setHarnessMode(mode: ExecutionMode): Promise<{ mode: ExecutionMode }> {
@@ -320,13 +357,13 @@ export async function resetCircuitBreaker(): Promise<{ status: string }> {
 }
 
 export async function getHarnessConfig(): Promise<HarnessConfig> {
-  return request<HarnessConfig>('/harness/config');
+  return requestOrDemo<HarnessConfig>('/harness/config', DEMO_HARNESS_CONFIG as any);
 }
 
 // ---- Market Data ----
 
 export async function getMarketIndices(): Promise<IndicesResponse> {
-  return request<IndicesResponse>('/trading/market/indices');
+  return requestOrDemo<IndicesResponse>('/trading/market/indices', { indices: DEMO_INDICES });
 }
 
 export async function getStockQuote(symbol: string): Promise<QuoteResponse> {
@@ -338,8 +375,9 @@ export async function getKline(
   period = 'daily',
   count = 30,
 ): Promise<KlineResponse> {
-  return request<KlineResponse>(
+  return requestOrDemo<KlineResponse>(
     `/trading/market/kline?symbol=${encodeURIComponent(symbol)}&period=${period}&count=${count}`,
+    { symbol, period, data: getDemoKline(symbol) },
   );
 }
 
@@ -384,11 +422,17 @@ export async function searchKnowledge(q: string, topK = 10): Promise<KnowledgeSe
 }
 
 export async function getKnowledgeStats(): Promise<KnowledgeStats> {
-  return request<KnowledgeStats>('/agent/knowledge/stats');
+  return requestOrDemo<KnowledgeStats>(
+    '/agent/knowledge/stats',
+    { total: 4, promoted: 4, candidates: 0, tags: 6, categories: 3 } as KnowledgeStats,
+  );
 }
 
 export async function getKnowledgeCandidates(): Promise<{ candidates: KnowledgeDoc[] }> {
-  return request<{ candidates: KnowledgeDoc[] }>('/agent/knowledge/candidates');
+  return requestOrDemo<{ candidates: KnowledgeDoc[] }>(
+    '/agent/knowledge/candidates',
+    { candidates: DEMO_KNOWLEDGE.candidates },
+  );
 }
 
 export async function promoteKnowledge(id: string): Promise<{ id: string; promoted: boolean }> {
@@ -399,7 +443,9 @@ export async function promoteKnowledge(id: string): Promise<{ id: string; promot
 }
 
 export async function listKnowledge(): Promise<KnowledgeListResponse> {
-  return request<KnowledgeListResponse>('/agent/knowledge/list');
+  return requestOrDemo<KnowledgeListResponse>('/agent/knowledge/list', {
+    entries: DEMO_KNOWLEDGE.entries,
+  });
 }
 
 export async function getKnowledgeDetail(id: string): Promise<KnowledgeDetail> {
@@ -516,7 +562,7 @@ export interface AgentRolesResponse {
 }
 
 export async function getAgentRoles(): Promise<AgentRolesResponse> {
-  return request<AgentRolesResponse>('/agent/roles');
+  return requestOrDemo<AgentRolesResponse>('/agent/roles', DEMO_ROLES as any);
 }
 
 export async function setAgentRole(role: string): Promise<{ role: string }> {

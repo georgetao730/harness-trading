@@ -16,6 +16,8 @@
   <img src="https://img.shields.io/badge/tests-51%20passed-success" alt="Tests">
   <img src="https://img.shields.io/badge/frontend-Next.js%2016-black?logo=next.js" alt="Next.js 16">
   <img src="https://img.shields.io/badge/status-active-brightgreen" alt="Status: active">
+  <br/>
+  <a href="https://frontend-three-tau-75.vercel.app"><img src="https://img.shields.io/badge/demo-Vercel-000000?logo=vercel&logoColor=white" alt="Vercel Demo"></a>
 </p>
 
 ---
@@ -63,7 +65,7 @@
 
 | <img src="screenshots/feature-dashboard.png" width="400" alt="仪表盘" /> | <img src="screenshots/feature-chat.png" width="400" alt="AI 对话" /> |
 |:--:|:--:|
-| **仪表盘** — 实时 KPI · 行情概览 | **AI 对话** — 角色切换 · RAG 增强 |
+| **仪表盘** — 实时 KPI · 行情概览 · **专业 K 线图** | **AI 对话** — 角色切换 · RAG 增强 |
 | <img src="screenshots/feature-knowledge.png" width="400" alt="知识库" /> | <img src="screenshots/feature-skills.png" width="400" alt="Skills" /> |
 | **知识库** — BM25 搜索 · AI 自主学习 | **Skills 管理** — 自然语言创建 · 在线编辑 |
 | <img src="screenshots/feature-channels.png" width="400" alt="通道管理" /> | <img src="screenshots/feature-safety.png" width="400" alt="安全中心" /> |
@@ -155,7 +157,7 @@ harness-trading/
 
 ## Roadmap
 
-**已完成** ✅ · Skills 插件 · 安全护栏 · 模拟交易 · 多模型路由 · Web Dashboard · 工作流引擎 · Agent 角色 · 知识库 RAG · 渠道管理（飞书/钉钉/企微） · 交易日志 · 自选股 · Eval 评估 · 定时任务调度
+**已完成** ✅ · Skills 插件 · 安全护栏 · 模拟交易 · 多模型路由 · Web Dashboard · 工作流引擎 · Agent 角色 · 知识库 RAG · 渠道管理（飞书/钉钉/企微） · 交易日志 · 自选股 · Eval 评估 · 定时任务调度 · 一键启动脚本 · **K线图（TradingView 渲染）** · **Vercel 在线 Demo**
 
 **进行中** 🟡 · 真实券商适配器 · WebSocket 实时行情推送 · LLM 流式输出
 

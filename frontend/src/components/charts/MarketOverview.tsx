@@ -6,7 +6,9 @@ import { cn } from '@/lib/utils';
 import {
   Activity,
   BarChart3,
+  CandlestickChartIcon,
   DollarSign,
+  LineChart,
   PieChart,
   RefreshCw,
   TrendingDown,
@@ -22,6 +24,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { CandlestickChart } from './CandlestickChart';
 
 export function MarketOverview() {
   const [indices, setIndices] = useState<MarketIndex[]>([]);
@@ -30,6 +33,7 @@ export function MarketOverview() {
   const [positions, setPositions] = useState<PortfolioPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState('上证指数');
+  const [chartType, setChartType] = useState<'area' | 'candle'>('candle');
 
   const fetchData = useCallback(async () => {
     try {
@@ -141,10 +145,38 @@ export function MarketOverview() {
         </div>
       )}
 
-      {/* K线图 */}
+      {/* 图表区域 */}
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">{selectedIndex}</h3>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold">{selectedIndex}</h3>
+            <div className="flex rounded-md bg-[var(--color-background)] border border-[var(--color-border)] overflow-hidden">
+              <button
+                onClick={() => setChartType('area')}
+                className={cn(
+                  'px-2 py-1 text-[10px] flex items-center gap-1 transition-colors',
+                  chartType === 'area'
+                    ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
+                )}
+              >
+                <LineChart className="w-3 h-3" />
+                走势
+              </button>
+              <button
+                onClick={() => setChartType('candle')}
+                className={cn(
+                  'px-2 py-1 text-[10px] flex items-center gap-1 transition-colors',
+                  chartType === 'candle'
+                    ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
+                )}
+              >
+                <BarChart3 className="w-3 h-3" />
+                K线
+              </button>
+            </div>
+          </div>
           <button
             onClick={fetchData}
             className="p-1 rounded hover:bg-[var(--color-surface-hover)] transition-colors"
@@ -153,8 +185,10 @@ export function MarketOverview() {
             <RefreshCw className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
           </button>
         </div>
-        {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
+        {chartType === 'candle' ? (
+          <CandlestickChart data={klineData} height={400} />
+        ) : chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={400}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
@@ -193,7 +227,7 @@ export function MarketOverview() {
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[200px] flex items-center justify-center text-xs text-[var(--color-text-muted)]">
+          <div className="h-[400px] flex items-center justify-center text-xs text-[var(--color-text-muted)]">
             {loading ? '加载中...' : '暂无数据'}
           </div>
         )}
